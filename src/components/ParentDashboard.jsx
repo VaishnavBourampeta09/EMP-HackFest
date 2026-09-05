@@ -1,24 +1,62 @@
-import dynamic from "next/dynamic";
-import AlertCard from "./AlertCard.jsx";
+"use client";
 
-const MapView = dynamic(() => import("./MapView.jsx"), { ssr: false });
+import dynamic from "next/dynamic";
+import {
+  Bell,
+  Check,
+  Clock,
+  Eye,
+  Footprints,
+  LockKey,
+  MapPin,
+  ShieldCheck,
+  SlidersHorizontal,
+  Warning,
+} from "@phosphor-icons/react";
+import AlertCard from "./AlertCard.jsx";
 import { acknowledgeAlert, zones, places } from "../actions.js";
 import { useStore, setState } from "../store.js";
 import { DEFAULT_SETTINGS } from "../logic/tripMonitoring.js";
 
+const MapView = dynamic(() => import("./MapView.jsx"), {
+  ssr: false,
+  loading: () => (
+    <div className="map-loading" role="status">
+      <span />
+      Preparing the live trip map
+    </div>
+  ),
+});
+
 const SETTING_LABELS = {
-  offRouteMeters: "Alert if off route by 300m",
-  longStopMinutes: "Check in after 5 minutes stopped",
-  checkRiskZones: "Check in near a recent incident zone",
-  etaDelayMinutes: "Alert if ETA slips by 10+ minutes",
+  offRouteMeters: {
+    title: "Sustained route changes",
+    detail: "Check in after a meaningful route deviation",
+  },
+  longStopMinutes: {
+    title: "Unexpected stops",
+    detail: "Check in after 7 simulated minutes stopped",
+  },
+  checkRiskZones: {
+    title: "Changing route conditions",
+    detail: "Offer a reroute when conditions change nearby",
+  },
+  etaDelayMinutes: {
+    title: "Significantly overdue",
+    detail: "Escalate when arrival slips by 10+ minutes",
+  },
 };
 
+function conditionScore(route) {
+  return route?.conditionScore ?? Math.max(0, 100 - (route?.riskScore ?? 0));
+}
+
 export default function ParentDashboard() {
-  const { trip, alerts, settings, users, locationUpdates } = useStore();
+  const { trip, alerts, settings, users, locationUpdates, checkin } = useStore();
   const pending = alerts.filter((alert) => alert.status === "pending");
   const lastUpdate = locationUpdates[0];
   const secondsAgo = lastUpdate
-    ? Math.round((Date.now() - lastUpdate.createdAt) / 1000)
+    ? Math.max(0, Math.round((Date.now() - lastUpdate.createdAt) / 1000))
     : null;
 
   const toggle = (key) => {
@@ -34,106 +72,263 @@ export default function ParentDashboard() {
     });
   };
 
-  return (
-    <div className="screen">
-      <h1>{users.teen.name}</h1>
-      {trip ? (
-        <div
-          className={`status-banner ${pending.length ? "banner-alert" : ""}`}
-        >
-          <div>
-            <span className="kicker">
-              {trip.status === "completed"
-                ? "Trip complete"
-                : trip.status === "alert"
-                  ? "Needs attention"
-                  : "On trip"}
-            </span>
-            <h2>{trip.destination.name}</h2>
-            <p>
-              ETA in {trip.etaMinutes} min · {trip.route.label} route ·{" "}
-              <span
-                className={`pill pill-${trip.route.riskLevel.toLowerCase()}`}
-              >
-                {trip.route.riskLevel} risk
-              </span>
-            </p>
-            <p className="muted">
-              Last update {secondsAgo === null ? "never" : `${secondsAgo}s ago`}
-            </p>
+  const getSettingState = (key) =>
+    key === "checkRiskZones" ? settings.checkRiskZones : settings[key] > 0;
+
+  if (!trip) {
+    return (
+      <div className="guardian-empty-layout">
+        <div className="guardian-empty-map">
+          <MapView zones={zones} places={places} height={620} />
+          <div className="map-resting-message">
+            <ShieldCheck size={24} weight="fill" aria-hidden="true" />
+            <div>
+              <strong>No active Safe Trip</strong>
+              <span>The map stays private until {users.teen.name} starts one.</span>
+            </div>
           </div>
         </div>
-      ) : (
-        <div className="empty-state">
-          <p>
-            No active trip. Location sharing is off until {users.teen.name}{" "}
-            starts one.
-          </p>
+
+        <aside className="guardian-sidebar guardian-empty-sidebar">
+          <div className="teen-profile">
+            <span className="teen-avatar">{users.teen.name.charAt(0)}</span>
+            <div>
+              <span>Your teen</span>
+              <h2>{users.teen.name}</h2>
+            </div>
+            <span className="calm-status">
+              <span />
+              Not sharing
+            </span>
+          </div>
+
+          <div className="guardian-empty-card">
+            <div className="empty-shield">
+              <LockKey size={30} weight="fill" aria-hidden="true" />
+            </div>
+            <h3>Privacy is the default state.</h3>
+            <p>
+              GuardianRoute is trip-scoped, not always-on tracking. Switch to
+              the Teen view, choose a route, and start a Safe Trip to see this
+              dashboard update live.
+            </p>
+          </div>
+
+          <section className="guardian-rules compact-rules">
+            <div className="sidebar-section-heading">
+              <SlidersHorizontal size={19} weight="bold" aria-hidden="true" />
+              <h3>Monitoring preferences</h3>
+            </div>
+            {Object.entries(SETTING_LABELS).map(([key, copy]) => {
+              const on = getSettingState(key);
+              return (
+                <div className="setting-row" key={key}>
+                  <div>
+                    <strong>{copy.title}</strong>
+                    <span>{copy.detail}</span>
+                  </div>
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={on}
+                    className={on ? "switch-control active" : "switch-control"}
+                    onClick={() => toggle(key)}
+                    aria-label={`${copy.title}: ${on ? "on" : "off"}`}
+                  >
+                    <span />
+                  </button>
+                </div>
+              );
+            })}
+          </section>
+        </aside>
+      </div>
+    );
+  }
+
+  const status =
+    pending.length > 0 || trip.status === "alert"
+      ? "attention"
+      : checkin?.status === "waiting"
+        ? "checking"
+        : trip.status === "completed"
+          ? "complete"
+          : "calm";
+
+  const statusCopy = {
+    attention: {
+      title: "Needs your attention",
+      detail: `${pending.length || 1} unresolved trip alert`,
+      icon: Warning,
+    },
+    checking: {
+      title: "Checking in first",
+      detail: `${users.teen.name} has a safety prompt open`,
+      icon: Bell,
+    },
+    complete: {
+      title: "Arrived",
+      detail: "The Safe Trip has ended",
+      icon: Check,
+    },
+    calm: {
+      title: "Trip looks on track",
+      detail: "No action is needed from you",
+      icon: ShieldCheck,
+    },
+  }[status];
+  const StatusIcon = statusCopy.icon;
+
+  return (
+    <div className="guardian-dashboard-layout">
+      <section className="guardian-map-column" aria-labelledby="guardian-trip-title">
+        <div className={`guardian-status-banner guardian-status-${status}`}>
+          <div className="guardian-status-icon">
+            <StatusIcon size={23} weight="fill" aria-hidden="true" />
+          </div>
+          <div>
+            <span>Live trip status</span>
+            <h2 id="guardian-trip-title">{statusCopy.title}</h2>
+            <p>{statusCopy.detail}</p>
+          </div>
+          <div className="last-update">
+            <span className={status === "calm" ? "pulse-live" : ""} />
+            Updated {secondsAgo === null ? "just now" : `${secondsAgo}s ago`}
+          </div>
         </div>
-      )}
 
-      {trip && (
-        <MapView
-          zones={zones}
-          places={places}
-          routes={[trip.route]}
-          activeRouteId={trip.route.routeId}
-          teenLocation={trip.location}
-          trail={locationUpdates
-            .slice()
-            .reverse()
-            .map((u) => [u.lat, u.lng])}
-          height={280}
-        />
-      )}
-
-      <section>
-        <h3>Alerts</h3>
-        {alerts.length === 0 && (
-          <p className="muted">
-            No alerts. GuardianRoute only escalates when a check-in fails.
-          </p>
-        )}
-        {alerts.map((alert) => (
-          <AlertCard
-            key={alert.id}
-            alert={alert}
-            trip={trip}
-            onAcknowledge={acknowledgeAlert}
+        <div className="guardian-live-map">
+          <MapView
+            zones={zones}
+            places={places}
+            routes={[trip.route]}
+            activeRouteId={trip.route.routeId}
+            teenLocation={trip.location}
+            trail={locationUpdates
+              .slice()
+              .reverse()
+              .map((update) => [update.lat, update.lng])}
+            height={650}
           />
-        ))}
+
+          <div className="guardian-map-card">
+            <div className="teen-avatar teen-avatar-small">{users.teen.name.charAt(0)}</div>
+            <div>
+              <span>{users.teen.name} is heading to</span>
+              <strong>{trip.destination.name}</strong>
+            </div>
+            <div className="eta-chip">
+              <Clock size={16} weight="bold" aria-hidden="true" />
+              {trip.etaMinutes} min
+            </div>
+          </div>
+        </div>
+
+        <div className="guardian-trip-facts">
+          <div>
+            <Footprints size={20} weight="bold" aria-hidden="true" />
+            <span>Selected route</span>
+            <strong>{trip.route.label}</strong>
+          </div>
+          <div>
+            <ShieldCheck size={20} weight="fill" aria-hidden="true" />
+            <span>Route conditions</span>
+            <strong>{conditionScore(trip.route)}/100</strong>
+          </div>
+          <div>
+            <MapPin size={20} weight="fill" aria-hidden="true" />
+            <span>Distance from route</span>
+            <strong>{trip.offRouteMeters ?? 0} m</strong>
+          </div>
+          <div>
+            <Eye size={20} weight="bold" aria-hidden="true" />
+            <span>Sharing scope</span>
+            <strong>Trip only</strong>
+          </div>
+        </div>
       </section>
 
-      <section>
-        <h3>Monitoring rules</h3>
-        <div className="settings-list">
-          {Object.keys(SETTING_LABELS).map((key) => {
-            const on =
-              key === "checkRiskZones"
-                ? settings.checkRiskZones
-                : settings[key] > 0;
-            return (
-              <label key={key} className="setting-row">
-                <input
-                  type="checkbox"
-                  checked={on}
-                  onChange={() => toggle(key)}
+      <aside className="guardian-sidebar">
+        <div className="teen-profile">
+          <span className="teen-avatar">{users.teen.name.charAt(0)}</span>
+          <div>
+            <span>Watching this trip</span>
+            <h2>{users.teen.name}</h2>
+          </div>
+          <span className="calm-status calm-status-live">
+            <span />
+            Live
+          </span>
+        </div>
+
+        <section className="alerts-panel" aria-labelledby="alerts-heading">
+          <div className="sidebar-section-heading">
+            <Bell size={19} weight="fill" aria-hidden="true" />
+            <h3 id="alerts-heading">Trip updates</h3>
+            {pending.length > 0 && <span className="alert-count">{pending.length}</span>}
+          </div>
+
+          {alerts.length === 0 ? (
+            <div className="calm-alert-state">
+              <ShieldCheck size={27} weight="fill" aria-hidden="true" />
+              <div>
+                <strong>Quiet is the intended state.</strong>
+                <p>
+                  GuardianRoute will check with {users.teen.name} before asking
+                  you to act.
+                </p>
+              </div>
+            </div>
+          ) : (
+            <div className="alert-list">
+              {alerts.map((alert) => (
+                <AlertCard
+                  key={alert.id}
+                  alert={alert}
+                  trip={trip}
+                  onAcknowledge={acknowledgeAlert}
                 />
-                <span>{SETTING_LABELS[key]}</span>
-              </label>
+              ))}
+            </div>
+          )}
+        </section>
+
+        <section className="guardian-rules" aria-labelledby="rules-heading">
+          <div className="sidebar-section-heading">
+            <SlidersHorizontal size={19} weight="bold" aria-hidden="true" />
+            <h3 id="rules-heading">Monitoring preferences</h3>
+          </div>
+          {Object.entries(SETTING_LABELS).map(([key, copy]) => {
+            const on = getSettingState(key);
+            return (
+              <div className="setting-row" key={key}>
+                <div>
+                  <strong>{copy.title}</strong>
+                  <span>{copy.detail}</span>
+                </div>
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={on}
+                  className={on ? "switch-control active" : "switch-control"}
+                  onClick={() => toggle(key)}
+                  aria-label={`${copy.title}: ${on ? "on" : "off"}`}
+                >
+                  <span />
+                </button>
+              </div>
             );
           })}
-        </div>
-      </section>
+        </section>
 
-      <section className="privacy">
-        <h3>Privacy by design</h3>
-        <p>
-          Location is shared only while a trip is active, stored as trip
-          history, and deleted with the trip. No always-on tracking, no silent
-          listening, no location sharing when the teen is not travelling.
-        </p>
-      </section>
+        <div className="privacy-note">
+          <LockKey size={20} weight="fill" aria-hidden="true" />
+          <p>
+            Location sharing ends with this trip. No background family map and
+            no silent tracking between trips.
+          </p>
+        </div>
+      </aside>
     </div>
   );
 }

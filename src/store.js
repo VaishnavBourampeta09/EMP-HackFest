@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import demoUsers from "./data/demo_users.json";
 import { DEFAULT_SETTINGS } from "./logic/tripMonitoring.js";
 
-const STORAGE_KEY = "guardian-route-state-v1";
+const STORAGE_KEY = "guardian-route-state-v2";
 const CHANNEL_NAME = "guardian-route";
 
 const initialState = {
