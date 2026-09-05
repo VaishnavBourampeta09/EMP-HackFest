@@ -1,3 +1,5 @@
+'use client';
+
 import { useEffect, useMemo, useState } from 'react';
 import TeenTripScreen from './components/TeenTripScreen.jsx';
 import ParentDashboard from './components/ParentDashboard.jsx';
@@ -9,11 +11,18 @@ import demoRoutes from './data/demo_routes.json';
 const deviationPoints = interpolatePath(demoRoutes.deviationPath, 40);
 
 export default function App() {
-  const [mode, setMode] = useState(() => (window.location.hash === '#parent' ? 'parent' : 'teen'));
+  const [mode, setMode] = useState('teen');
   const { trip, checkin, simulation } = useStore();
   const active = trip && (trip.status === 'active' || trip.status === 'alert');
 
   useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const hashMode = window.location.hash === '#parent' ? 'parent' : 'teen';
+    setMode(hashMode);
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
     window.location.hash = mode === 'parent' ? '#parent' : '#teen';
   }, [mode]);
 
