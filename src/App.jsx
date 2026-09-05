@@ -1,41 +1,15 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import Link from "next/link";
+import { useRef } from "react";
+import { useRouter } from "next/navigation";
 import { useGSAP } from "@gsap/react";
 import gsap from "gsap";
-import {
-  ArrowCounterClockwise,
-  MapTrifold,
-  Pause,
-  Path,
-  Play,
-  ShieldCheck,
-  UsersThree,
-} from "@phosphor-icons/react";
-import TeenTripScreen from "./components/TeenTripScreen.jsx";
-import ParentDashboard from "./components/ParentDashboard.jsx";
+import { ArrowRight, Path, ShieldCheck } from "@phosphor-icons/react";
+import BrandMark from "./components/BrandMark.jsx";
 import ProductStory from "./components/ProductStory.jsx";
-import { useStore, setState, getState, resetDemo } from "./store.js";
-import { pushLocation, expireCheckin, endTrip } from "./actions.js";
-import { interpolatePath, nearestIndex } from "./logic/geo.js";
-import demoRoutes from "./data/demo_routes.json";
 
 gsap.registerPlugin(useGSAP);
-
-const deviationPoints = interpolatePath(demoRoutes.deviationPath, 40);
-
-function BrandMark() {
-  return (
-    <span className="brand-mark" aria-hidden="true">
-      <svg viewBox="0 0 42 42" role="presentation">
-        <path d="M8 10.5 21 5l13 5.5v9.8c0 8.4-5.4 13.9-13 16.7C13.4 34.2 8 28.7 8 20.3Z" />
-        <path d="M14.5 26.5c3.6-6.3 7.2-9.7 13.5-12" />
-        <circle cx="14.5" cy="26.5" r="2.2" />
-        <circle cx="28" cy="14.5" r="2.2" />
-      </svg>
-    </span>
-  );
-}
 
 function scrollToId(id) {
   document.getElementById(id)?.scrollIntoView({
@@ -48,9 +22,7 @@ function scrollToId(id) {
 
 export default function App() {
   const appRef = useRef(null);
-  const [mode, setMode] = useState("teen");
-  const { trip, checkin, simulation } = useStore();
-  const active = trip && (trip.status === "active" || trip.status === "alert");
+  const router = useRouter();
 
   useGSAP(
     () => {
@@ -59,9 +31,7 @@ export default function App() {
         { reduceMotion: "(prefers-reduced-motion: reduce)" },
         (context) => {
           if (context.conditions.reduceMotion) {
-            gsap.set([".hero-reveal", ".hero-visual"], {
-              clearProps: "all",
-            });
+            gsap.set([".hero-reveal", ".hero-visual"], { clearProps: "all" });
             return;
           }
 
@@ -88,176 +58,28 @@ export default function App() {
     { scope: appRef },
   );
 
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    const hashMode = window.location.hash === "#parent" ? "parent" : "teen";
-    setMode(hashMode);
-  }, []);
-
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    if (window.location.hash === "#parent" || window.location.hash === "#teen") {
-      window.history.replaceState(
-        null,
-        "",
-        mode === "parent" ? "#parent" : "#teen",
-      );
-    }
-  }, [mode]);
-
-  useEffect(() => {
-    const id = window.setInterval(() => {
-      const state = getState();
-      const current = state.trip;
-      if (
-        !current ||
-        (current.status !== "active" && current.status !== "alert")
-      ) {
-        return;
-      }
-
-      if (
-        state.checkin?.status === "waiting" &&
-        Date.now() >= state.checkin.expiresAt
-      ) {
-        expireCheckin();
-        return;
-      }
-
-      const sim = state.simulation;
-      if (!sim.running) return;
-      if (sim.lastTickAt && Date.now() - sim.lastTickAt < 900) return;
-
-      if (sim.stopped) {
-        const minutesStopped = sim.minutesStopped + 1;
-        setState({
-          simulation: { ...sim, minutesStopped, lastTickAt: Date.now() },
-        });
-        pushLocation(current.location, { speed: 0, elapsedSeconds: 60 });
-        return;
-      }
-
-      const path = sim.offRoute ? deviationPoints : current.route.points;
-      const nextIndex = Math.min(sim.index + 1, path.length - 1);
-      setState({
-        simulation: {
-          ...sim,
-          index: nextIndex,
-          minutesStopped: 0,
-          lastTickAt: Date.now(),
-        },
-      });
-      pushLocation(path[nextIndex], { speed: 1.4, elapsedSeconds: 60 });
-
-      if (!sim.offRoute && nextIndex === path.length - 1) {
-        endTrip("completed");
-      }
-    }, 1000);
-    return () => window.clearInterval(id);
-  }, []);
-
-  const controls = useMemo(
-    () => [
-      {
-        label: simulation.stopped ? "Resume trip" : "Simulate stop",
-        icon: simulation.stopped ? Play : Pause,
-        disabled: !active,
-        onClick: () =>
-          setState({
-            simulation: {
-              ...getState().simulation,
-              stopped: !simulation.stopped,
-              minutesStopped: 0,
-            },
-          }),
-      },
-      {
-        label: simulation.offRoute ? "Return to route" : "Simulate detour",
-        icon: simulation.offRoute ? ArrowCounterClockwise : Path,
-        disabled: !active,
-        onClick: () => {
-          const state = getState();
-          const sim = state.simulation;
-          const goingOffRoute = !sim.offRoute;
-          const index = goingOffRoute
-            ? nearestIndex(state.trip.location, deviationPoints)
-            : nearestIndex(state.trip.location, state.trip.route.points);
-          setState({
-            simulation: {
-              ...sim,
-              offRoute: goingOffRoute,
-              index,
-              stopped: false,
-              minutesStopped: 0,
-            },
-          });
-        },
-      },
-      {
-        label: "Reset",
-        icon: ArrowCounterClockwise,
-        disabled: false,
-        onClick: resetDemo,
-      },
-    ],
-    [active, simulation.stopped, simulation.offRoute],
-  );
-
   return (
     <div ref={appRef} className="site-shell" id="top">
       <header className="nav-wrap">
         <nav className="site-nav" aria-label="Primary navigation">
-          <button
-            type="button"
-            className="brand"
-            onClick={() => scrollToId("top")}
-            aria-label="GuardianRoute home"
-          >
+          <Link className="brand" href="/" aria-label="GuardianRoute home">
             <BrandMark />
             <span className="brand-name">GuardianRoute</span>
-          </button>
+          </Link>
 
           <div className="nav-links" aria-label="Page sections">
-            <button type="button" onClick={() => scrollToId("planner")}>
-              Plan
+            <button type="button" onClick={() => scrollToId("route-intelligence")}>
+              How it works
             </button>
             <button type="button" onClick={() => scrollToId("guardian-story")}>
               Guardian
             </button>
-            <button type="button" onClick={() => scrollToId("route-intelligence")}>
-              How it works
-            </button>
           </div>
 
-          <div className="mode-toggle" aria-label="Choose product view">
-            <button
-              type="button"
-              className={mode === "teen" ? "active" : ""}
-              aria-pressed={mode === "teen"}
-              onClick={() => {
-                setMode("teen");
-                window.history.replaceState(null, "", "#teen");
-              }}
-            >
-              <MapTrifold size={17} weight="bold" aria-hidden="true" />
-              <span>Teen</span>
-            </button>
-            <button
-              type="button"
-              className={mode === "parent" ? "active" : ""}
-              aria-pressed={mode === "parent"}
-              onClick={() => {
-                setMode("parent");
-                window.history.replaceState(null, "", "#parent");
-              }}
-            >
-              <UsersThree size={17} weight="bold" aria-hidden="true" />
-              <span>Guardian</span>
-              {mode !== "parent" && checkin?.status === "expired" && (
-                <span className="notification-dot" aria-label="New guardian alert" />
-              )}
-            </button>
-          </div>
+          <Link className="nav-planner-link" href="/planner">
+            Open planner
+            <ArrowRight size={16} weight="bold" aria-hidden="true" />
+          </Link>
         </nav>
       </header>
 
@@ -277,14 +99,10 @@ export default function App() {
               when an active trip stops going as planned.
             </p>
             <div className="hero-actions hero-reveal">
-              <button
-                type="button"
-                className="button button-lime button-large"
-                onClick={() => scrollToId("planner")}
-              >
+              <Link className="button button-lime button-large" href="/planner">
                 Plan a safe route
                 <Path size={19} weight="bold" aria-hidden="true" />
-              </button>
+              </Link>
               <button
                 type="button"
                 className="button button-ink button-large"
@@ -322,73 +140,9 @@ export default function App() {
           </div>
         </section>
 
-        <section id="planner" className="planner-section" aria-labelledby="planner-title">
-          <div className="section-heading">
-            <div>
-              <p className="section-kicker">Live Redmond prototype</p>
-              <h2 id="planner-title">
-                {mode === "teen" ? "Choose with context." : "Know when it matters."}
-              </h2>
-            </div>
-            <p>
-              {mode === "teen"
-                ? "Compare familiar routes without trading away the rest of your evening."
-                : "See the expected trip, the latest update, and only the alerts that need attention."}
-            </p>
-          </div>
-
-          <div className={`product-frame product-frame-${mode}`}>
-            <header className="product-bar">
-              <div className="product-identity">
-                <BrandMark />
-                <div>
-                  <strong>GuardianRoute</strong>
-                  <span>{mode === "teen" ? "Teen trip planner" : "Guardian dashboard"}</span>
-                </div>
-              </div>
-
-              <div className="product-status" aria-live="polite">
-                <span className={active ? "status-orb status-orb-live" : "status-orb"} />
-                {active ? "Trip monitoring active" : "Ready to plan"}
-              </div>
-            </header>
-
-            <div className="simulator-toolbar" aria-label="Trip simulator controls">
-              <div className="simulator-copy">
-                <span>Interactive demo</span>
-                <strong>{active ? "Try a trip event" : "Start a trip to unlock events"}</strong>
-              </div>
-              <div className="simulator-actions">
-                {controls.map((control) => {
-                  const Icon = control.icon;
-                  return (
-                    <button
-                      key={control.label}
-                      type="button"
-                      disabled={control.disabled}
-                      onClick={control.onClick}
-                    >
-                      <Icon size={16} weight="bold" aria-hidden="true" />
-                      <span>{control.label}</span>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            <div className="product-content">
-              {mode === "teen" ? <TeenTripScreen /> : <ParentDashboard />}
-            </div>
-          </div>
-        </section>
-
         <ProductStory
-          onPlanClick={() => scrollToId("planner")}
-          onGuardianClick={() => {
-            setMode("parent");
-            window.history.replaceState(null, "", "#parent");
-            scrollToId("planner");
-          }}
+          onPlanClick={() => router.push("/planner")}
+          onGuardianClick={() => router.push("/planner#parent")}
         />
       </main>
     </div>

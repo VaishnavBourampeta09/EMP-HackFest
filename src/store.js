@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import demoUsers from "./data/demo_users.json";
 import { DEFAULT_SETTINGS } from "./logic/tripMonitoring.js";
 
-const STORAGE_KEY = "guardian-route-state-v2";
+const STORAGE_KEY = "guardian-route-state-v3";
 const CHANNEL_NAME = "guardian-route";
 
 const initialState = {
@@ -36,7 +36,13 @@ function load() {
   try {
     const raw = safeStorage ? safeStorage.getItem(STORAGE_KEY) : null;
     if (!raw) return initialState;
-    return { ...initialState, ...JSON.parse(raw) };
+    const saved = JSON.parse(raw);
+    return {
+      ...initialState,
+      ...saved,
+      settings: { ...initialState.settings, ...(saved.settings || {}) },
+      simulation: { ...initialState.simulation, ...(saved.simulation || {}) },
+    };
   } catch (error) {
     return initialState;
   }

@@ -14,7 +14,7 @@ import {
   Warning,
 } from "@phosphor-icons/react";
 import AlertCard from "./AlertCard.jsx";
-import { acknowledgeAlert, zones, places } from "../actions.js";
+import { acknowledgeAlert, places } from "../actions.js";
 import { useStore, setState } from "../store.js";
 import { DEFAULT_SETTINGS } from "../logic/tripMonitoring.js";
 
@@ -79,7 +79,7 @@ export default function ParentDashboard() {
     return (
       <div className="guardian-empty-layout">
         <div className="guardian-empty-map">
-          <MapView zones={zones} places={places} height={620} />
+          <MapView places={places} height={620} />
           <div className="map-resting-message">
             <ShieldCheck size={24} weight="fill" aria-hidden="true" />
             <div>
@@ -199,7 +199,7 @@ export default function ParentDashboard() {
 
         <div className="guardian-live-map">
           <MapView
-            zones={zones}
+            zones={trip.route.contextFactors || []}
             places={places}
             routes={[trip.route]}
             activeRouteId={trip.route.routeId}

@@ -62,8 +62,8 @@ export function evaluateTrip(context) {
         key: `risk_zone:${zone.id}`,
         type: 'risk_zone',
         severity: 'low',
-        question: `This area has recent ${ZONE_LABELS[zone.type]} reports. Continue or reroute?`,
-        message: `Teen entered ${zone.name}.`,
+        question: `There is recent ${ZONE_LABELS[zone.type] || 'incident'} context near this route. Continue or reroute?`,
+        message: `Trip entered the mapped context area for ${zone.name || 'a recent report'}.`,
         zone
       });
     }
@@ -95,7 +95,7 @@ export function escalationMessage(checkin) {
     case 'long_stop':
       return 'Teen stopped for several minutes and did not answer the safety check.';
     case 'risk_zone':
-      return 'Teen entered a recent incident zone and did not answer the safety check.';
+      return 'The trip passed near a recent mapped incident and the teen did not answer the safety check.';
     case 'late_arrival':
       return 'Teen is running far behind ETA and did not answer the safety check.';
     default:

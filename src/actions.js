@@ -371,7 +371,7 @@ export function pushLocation(location, extra = {}) {
     minutesStopped: simulation.minutesStopped,
     offRouteSeconds,
     stationarySeconds,
-    incidentZones,
+    incidentZones: trip.route.contextFactors || incidentZones,
     settings,
     handledKeys: trip.handledKeys,
     expectedRemainingMinutes: extra.expectedRemainingMinutes

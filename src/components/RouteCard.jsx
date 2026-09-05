@@ -15,7 +15,9 @@ function routeCondition(route) {
 export default function RouteCard({ route, selected, onSelect }) {
   const condition = routeCondition(route);
   const transitSummary = route.mode === "transit"
-    ? route.legs
+    ? [
+        route.waitMinutes > 0 ? `${route.waitMinutes} min wait` : null,
+        ...(route.legs
         ?.map((leg) => {
           const type = String(leg.type || leg.mode).toLowerCase();
           if (type === "transit" || type === "bus") {
@@ -24,8 +26,8 @@ export default function RouteCard({ route, selected, onSelect }) {
           if (type === "wait") return `${leg.durationMinutes} min wait`;
           return `${leg.durationMinutes} min walk`;
         })
-        .filter(Boolean)
-        .join(" · ")
+        .filter(Boolean) || []),
+      ].filter(Boolean).join(" · ")
     : null;
 
   return (
