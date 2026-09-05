@@ -1,0 +1,287 @@
+{
+  "origin": {
+    "name": "Redmond Library",
+    "lat": 47.674,
+    "lng": -122.1215
+  },
+  "destination": {
+    "name": "Home",
+    "lat": 47.689,
+    "lng": -122.135
+  },
+  "routes": [
+    {
+      "routeId": "transit_direct_221",
+      "label": "Direct 221",
+      "durationMinutes": 22,
+      "distanceKm": 2.4,
+      "summary": "One bus from the Redmond Library stop",
+      "waitMinutes": 3,
+      "transferCount": 0,
+      "serviceDisruption": {
+        "active": false,
+        "status": "clear",
+        "severity": "none",
+        "delayMinutes": 0,
+        "message": "No active service alerts in the demo feed"
+      },
+      "waypoints": [
+        [47.674, -122.1215],
+        [47.675, -122.121],
+        [47.678, -122.122],
+        [47.6825, -122.124],
+        [47.6865, -122.128],
+        [47.6884, -122.1328],
+        [47.689, -122.135]
+      ],
+      "legs": [
+        {
+          "legId": "221_walk_to_stop",
+          "type": "walking",
+          "mode": "WALK",
+          "from": "Redmond Library",
+          "to": "Redmond Library eastbound stop",
+          "durationMinutes": 2,
+          "distanceKm": 0.12,
+          "waypoints": [
+            [47.674, -122.1215],
+            [47.675, -122.121]
+          ]
+        },
+        {
+          "legId": "221_initial_wait",
+          "type": "wait",
+          "mode": "WAIT",
+          "at": "Redmond Library eastbound stop",
+          "durationMinutes": 3,
+          "sheltered": true,
+          "wellLit": true
+        },
+        {
+          "legId": "221_bus",
+          "type": "transit",
+          "mode": "BUS",
+          "agency": "King County Metro",
+          "routeShortName": "221",
+          "headsign": "Education Hill",
+          "from": "Redmond Library eastbound stop",
+          "to": "NE 104th St and 160th Ave NE",
+          "durationMinutes": 13,
+          "stopCount": 6,
+          "waypoints": [
+            [47.675, -122.121],
+            [47.678, -122.122],
+            [47.6825, -122.124],
+            [47.6865, -122.128],
+            [47.6884, -122.1328]
+          ]
+        },
+        {
+          "legId": "221_walk_home",
+          "type": "walking",
+          "mode": "WALK",
+          "from": "NE 104th St and 160th Ave NE",
+          "to": "Home",
+          "durationMinutes": 4,
+          "distanceKm": 0.25,
+          "waypoints": [
+            [47.6884, -122.1328],
+            [47.689, -122.135]
+          ]
+        }
+      ]
+    },
+    {
+      "routeId": "transit_fast_250",
+      "label": "Fastest 250",
+      "durationMinutes": 18,
+      "distanceKm": 2.3,
+      "summary": "Short ride with a longer curbside wait",
+      "waitMinutes": 6,
+      "transferCount": 0,
+      "serviceDisruption": {
+        "active": true,
+        "status": "delay",
+        "severity": "minor",
+        "delayMinutes": 3,
+        "message": "Demo feed reports intermittent three-minute delays"
+      },
+      "waypoints": [
+        [47.674, -122.1215],
+        [47.6739, -122.1252],
+        [47.6741, -122.1272],
+        [47.6776, -122.13],
+        [47.6812, -122.1305],
+        [47.6845, -122.1303],
+        [47.6872, -122.1316],
+        [47.689, -122.135]
+      ],
+      "legs": [
+        {
+          "legId": "250_walk_to_stop",
+          "type": "walking",
+          "mode": "WALK",
+          "from": "Redmond Library",
+          "to": "Redmond Way and 161st Ave NE",
+          "durationMinutes": 4,
+          "distanceKm": 0.43,
+          "waypoints": [
+            [47.674, -122.1215],
+            [47.6739, -122.1252],
+            [47.6741, -122.1272]
+          ]
+        },
+        {
+          "legId": "250_initial_wait",
+          "type": "wait",
+          "mode": "WAIT",
+          "at": "Redmond Way and 161st Ave NE",
+          "durationMinutes": 6,
+          "sheltered": false,
+          "wellLit": true
+        },
+        {
+          "legId": "250_bus",
+          "type": "transit",
+          "mode": "BUS",
+          "agency": "King County Metro",
+          "routeShortName": "250",
+          "headsign": "Avondale",
+          "from": "Redmond Way and 161st Ave NE",
+          "to": "NE 104th St and 159th Ave NE",
+          "durationMinutes": 5,
+          "stopCount": 3,
+          "waypoints": [
+            [47.6741, -122.1272],
+            [47.6776, -122.13],
+            [47.6812, -122.1305],
+            [47.6845, -122.1303],
+            [47.6872, -122.1316]
+          ]
+        },
+        {
+          "legId": "250_walk_home",
+          "type": "walking",
+          "mode": "WALK",
+          "from": "NE 104th St and 159th Ave NE",
+          "to": "Home",
+          "durationMinutes": 3,
+          "distanceKm": 0.31,
+          "waypoints": [
+            [47.6872, -122.1316],
+            [47.6885, -122.133],
+            [47.689, -122.135]
+          ]
+        }
+      ]
+    },
+    {
+      "routeId": "transit_connection_221_250",
+      "label": "221 + 250",
+      "durationMinutes": 24,
+      "distanceKm": 2.8,
+      "summary": "Two short rides with a timed transfer",
+      "waitMinutes": 7,
+      "transferCount": 1,
+      "serviceDisruption": {
+        "active": true,
+        "status": "reroute",
+        "severity": "moderate",
+        "delayMinutes": 5,
+        "message": "Demo feed reports a temporary stop relocation"
+      },
+      "waypoints": [
+        [47.674, -122.1215],
+        [47.6758, -122.122],
+        [47.6781, -122.1228],
+        [47.681, -122.124],
+        [47.6845, -122.1252],
+        [47.6875, -122.1255],
+        [47.6902, -122.13],
+        [47.689, -122.135]
+      ],
+      "legs": [
+        {
+          "legId": "connection_walk_to_stop",
+          "type": "walking",
+          "mode": "WALK",
+          "from": "Redmond Library",
+          "to": "NE 90th St and 166th Ave NE",
+          "durationMinutes": 4,
+          "distanceKm": 0.39,
+          "waypoints": [
+            [47.674, -122.1215],
+            [47.6758, -122.122],
+            [47.6781, -122.1228]
+          ]
+        },
+        {
+          "legId": "connection_initial_wait",
+          "type": "wait",
+          "mode": "WAIT",
+          "at": "NE 90th St and 166th Ave NE",
+          "durationMinutes": 2,
+          "sheltered": false,
+          "wellLit": false
+        },
+        {
+          "legId": "connection_221_bus",
+          "type": "transit",
+          "mode": "BUS",
+          "agency": "King County Metro",
+          "routeShortName": "221",
+          "headsign": "Education Hill",
+          "from": "NE 90th St and 166th Ave NE",
+          "to": "NE 100th St and 166th Ave NE",
+          "durationMinutes": 4,
+          "stopCount": 2,
+          "waypoints": [
+            [47.6781, -122.1228],
+            [47.681, -122.124],
+            [47.6845, -122.1252]
+          ]
+        },
+        {
+          "legId": "connection_transfer_wait",
+          "type": "wait",
+          "mode": "WAIT",
+          "at": "NE 100th St and 166th Ave NE",
+          "durationMinutes": 5,
+          "sheltered": false,
+          "wellLit": false
+        },
+        {
+          "legId": "connection_250_bus",
+          "type": "transit",
+          "mode": "BUS",
+          "agency": "King County Metro",
+          "routeShortName": "250",
+          "headsign": "Kirkland",
+          "from": "NE 100th St and 166th Ave NE",
+          "to": "NE 111th St and 162nd Ave NE",
+          "durationMinutes": 5,
+          "stopCount": 3,
+          "waypoints": [
+            [47.6845, -122.1252],
+            [47.6875, -122.1255],
+            [47.6902, -122.13]
+          ]
+        },
+        {
+          "legId": "connection_walk_home",
+          "type": "walking",
+          "mode": "WALK",
+          "from": "NE 111th St and 162nd Ave NE",
+          "to": "Home",
+          "durationMinutes": 4,
+          "distanceKm": 0.42,
+          "waypoints": [
+            [47.6902, -122.13],
+            [47.6902, -122.133],
+            [47.689, -122.135]
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -2,9 +2,10 @@ import { distanceFromRoute, remainingMinutes } from './routeDeviation.js';
 import { findNearbyIncidentZone, ZONE_LABELS } from './riskScoring.js';
 
 export const DEFAULT_SETTINGS = {
-  offRouteMeters: 300,
-  longStopMinutes: 5,
-  checkRiskZones: true,
+  offRouteMeters: 200,
+  routeDeviationSeconds: 120,
+  longStopMinutes: 7,
+  checkRiskZones: false,
   etaDelayMinutes: 10,
   checkinTimeoutSeconds: 30
 };
@@ -15,6 +16,8 @@ export function evaluateTrip(context) {
     routePoints,
     durationMinutes,
     minutesStopped,
+    offRouteSeconds = 0,
+    stationarySeconds = 0,
     incidentZones,
     settings = DEFAULT_SETTINGS,
     handledKeys = []
@@ -24,17 +27,25 @@ export function evaluateTrip(context) {
   const handled = new Set(handledKeys);
 
   const offBy = distanceFromRoute(location, routePoints);
-  if (offBy > settings.offRouteMeters && !handled.has('route_deviation')) {
+  const deviationWindow = settings.routeDeviationSeconds ?? 120;
+  if (
+    offBy > settings.offRouteMeters &&
+    offRouteSeconds >= deviationWindow &&
+    !handled.has('route_deviation')
+  ) {
     triggers.push({
       key: 'route_deviation',
       type: 'route_deviation',
       severity: 'medium',
       question: 'You left the planned route. Are you okay?',
-      message: `Teen is ${Math.round(offBy)}m away from the planned route.`
+      message: `Teen has remained about ${Math.round(offBy)}m from the planned route for two minutes.`
     });
   }
 
-  if (minutesStopped >= settings.longStopMinutes && !handled.has('long_stop')) {
+  const stoppedLongEnough =
+    stationarySeconds >= settings.longStopMinutes * 60 ||
+    minutesStopped >= settings.longStopMinutes;
+  if (stoppedLongEnough && !handled.has('long_stop')) {
     triggers.push({
       key: 'long_stop',
       type: 'long_stop',
