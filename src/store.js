@@ -15,13 +15,17 @@ const initialState = {
   simulation: { running: false, index: 0, offRoute: false, stopped: false, minutesStopped: 0, lastTickAt: 0 }
 };
 
+const safeStorage = typeof window !== 'undefined' ? window.localStorage : null;
+
 let state = load();
 const listeners = new Set();
-const channel = typeof BroadcastChannel !== 'undefined' ? new BroadcastChannel(CHANNEL_NAME) : null;
+const channel = typeof window !== 'undefined' && typeof window.BroadcastChannel !== 'undefined'
+  ? new window.BroadcastChannel(CHANNEL_NAME)
+  : null;
 
 function load() {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const raw = safeStorage ? safeStorage.getItem(STORAGE_KEY) : null;
     if (!raw) return initialState;
     return { ...initialState, ...JSON.parse(raw) };
   } catch (error) {
@@ -31,7 +35,9 @@ function load() {
 
 function persist() {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    if (safeStorage) {
+      safeStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    }
   } catch (error) {
     return;
   }

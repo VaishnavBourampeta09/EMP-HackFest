@@ -1,6 +1,8 @@
 import { useMemo, useState } from 'react';
-import MapView from './MapView.jsx';
+import dynamic from 'next/dynamic';
 import RouteCard from './RouteCard.jsx';
+
+const MapView = dynamic(() => import('./MapView.jsx'), { ssr: false });
 import CheckinSheet from './CheckinSheet.jsx';
 import { planRoutes, startTrip, endTrip, respondCheckin, sendSos, zones, places } from '../actions.js';
 import demoRoutes from '../data/demo_routes.json';

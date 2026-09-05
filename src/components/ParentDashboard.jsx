@@ -1,5 +1,7 @@
-import MapView from './MapView.jsx';
+import dynamic from 'next/dynamic';
 import AlertCard from './AlertCard.jsx';
+
+const MapView = dynamic(() => import('./MapView.jsx'), { ssr: false });
 import { acknowledgeAlert, zones, places } from '../actions.js';
 import { useStore, setState } from '../store.js';
 import { DEFAULT_SETTINGS } from '../logic/tripMonitoring.js';
