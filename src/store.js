@@ -1,0 +1,81 @@
+import { useEffect, useState } from 'react';
+import demoUsers from './data/demo_users.json';
+import { DEFAULT_SETTINGS } from './logic/tripMonitoring.js';
+
+const STORAGE_KEY = 'guardian-route-state-v1';
+const CHANNEL_NAME = 'guardian-route';
+
+const initialState = {
+  users: demoUsers,
+  trip: null,
+  checkin: null,
+  alerts: [],
+  locationUpdates: [],
+  settings: { ...DEFAULT_SETTINGS },
+  simulation: { running: false, index: 0, offRoute: false, stopped: false, minutesStopped: 0, lastTickAt: 0 }
+};
+
+let state = load();
+const listeners = new Set();
+const channel = typeof BroadcastChannel !== 'undefined' ? new BroadcastChannel(CHANNEL_NAME) : null;
+
+function load() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return initialState;
+    return { ...initialState, ...JSON.parse(raw) };
+  } catch (error) {
+    return initialState;
+  }
+}
+
+function persist() {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  } catch (error) {
+    return;
+  }
+}
+
+function emit(broadcast = true) {
+  persist();
+  if (broadcast && channel) channel.postMessage(state);
+  listeners.forEach((listener) => listener(state));
+}
+
+if (channel) {
+  channel.onmessage = (event) => {
+    state = event.data;
+    listeners.forEach((listener) => listener(state));
+  };
+}
+
+export function getState() {
+  return state;
+}
+
+export function setState(updater) {
+  const next = typeof updater === 'function' ? updater(state) : updater;
+  state = { ...state, ...next };
+  emit();
+  return state;
+}
+
+export function subscribe(listener) {
+  listeners.add(listener);
+  return () => listeners.delete(listener);
+}
+
+export function useStore() {
+  const [snapshot, setSnapshot] = useState(state);
+  useEffect(() => subscribe(setSnapshot), []);
+  return snapshot;
+}
+
+export function resetDemo() {
+  state = { ...initialState, settings: state.settings };
+  emit();
+}
+
+export const createId = (prefix) =>
+  `${prefix}_${Math.random().toString(36).slice(2, 8)}${Date.now().toString(36).slice(-3)}`;

@@ -1,0 +1,4 @@
+{
+  "teen": { "id": "teen_123", "name": "Karunya", "role": "teen", "familyId": "fam_001", "phone": "+1 (425) 555-0134" },
+  "parent": { "id": "parent_456", "name": "Priya", "role": "parent", "familyId": "fam_001", "phone": "+1 (425) 555-0177" }
+}

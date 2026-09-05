@@ -1,0 +1,7 @@
+[
+  { "id": "place_home", "familyId": "fam_001", "name": "Home", "type": "home", "lat": 47.6890, "lng": -122.1350, "radiusMeters": 120 },
+  { "id": "place_school", "familyId": "fam_001", "name": "Redmond High School", "type": "school", "lat": 47.6842, "lng": -122.1128, "radiusMeters": 200 },
+  { "id": "place_library", "familyId": "fam_001", "name": "Redmond Library", "type": "activity", "lat": 47.6740, "lng": -122.1215, "radiusMeters": 150 },
+  { "id": "place_marymoor", "familyId": "fam_001", "name": "Marymoor Park", "type": "activity", "lat": 47.6635, "lng": -122.1180, "radiusMeters": 300 },
+  { "id": "place_station", "familyId": "fam_001", "name": "Downtown Redmond Station", "type": "other", "lat": 47.6749, "lng": -122.1291, "radiusMeters": 150 }
+]
