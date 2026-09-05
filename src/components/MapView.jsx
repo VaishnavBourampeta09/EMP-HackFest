@@ -438,6 +438,85 @@ function FactorMarker({ factor }) {
   );
 }
 
+function TransitRouteDetail({ route }) {
+  const legs = (route.legs || []).map((leg, index) => ({
+    leg,
+    index,
+    positions: routePoints({ points: leg.waypoints, geometry: leg.geometry }),
+  })).filter(({ positions }) => positions.length > 1);
+  const transitStops = [];
+
+  legs.forEach(({ leg, positions, index }) => {
+    const isTransit = String(leg.type || leg.mode).toLowerCase() === "transit" ||
+      !["walk", "walking"].includes(String(leg.mode).toLowerCase());
+    if (!isTransit) return;
+    transitStops.push({
+      id: `${leg.legId || index}-from`,
+      name: leg.from || "Board transit",
+      point: isLatLng(leg.fromCoordinate) ? leg.fromCoordinate : positions[0],
+      routeName: leg.routeShortName || leg.routeLongName || leg.mode,
+    });
+    transitStops.push({
+      id: `${leg.legId || index}-to`,
+      name: leg.to || "Leave transit",
+      point: isLatLng(leg.toCoordinate)
+        ? leg.toCoordinate
+        : positions[positions.length - 1],
+      routeName: leg.routeShortName || leg.routeLongName || leg.mode,
+    });
+  });
+
+  return (
+    <>
+      {legs.map(({ leg, index, positions }) => {
+        const mode = String(leg.type || leg.mode).toLowerCase();
+        const isWalking = mode === "walking" || mode === "walk";
+        const routeColor = /^#[0-9a-f]{6}$/i.test(leg.routeColor || "")
+          ? leg.routeColor
+          : "#315f72";
+        return (
+          <Polyline
+            key={leg.legId || `transit-leg-${index}`}
+            positions={positions}
+            interactive={false}
+            pathOptions={{
+              color: isWalking ? "#4f6558" : routeColor,
+              dashArray: isWalking ? "3 7" : undefined,
+              lineCap: "round",
+              lineJoin: "round",
+              opacity: 1,
+              weight: isWalking ? 5 : 8,
+              className: isWalking ? "map-transit-walk-leg" : "map-transit-ride-leg",
+            }}
+          />
+        );
+      })}
+
+      {transitStops.map((stop) => (
+        <CircleMarker
+          key={stop.id}
+          center={stop.point}
+          radius={5.5}
+          pathOptions={{
+            color: "#fffdf8",
+            fillColor: "#0f5060",
+            fillOpacity: 1,
+            opacity: 1,
+            weight: 2.5,
+            className: "map-transit-stop",
+          }}
+        >
+          <Tooltip className="map-place-tooltip">
+            <strong>{stop.routeName}</strong>
+            <br />
+            {stop.name}
+          </Tooltip>
+        </CircleMarker>
+      ))}
+    </>
+  );
+}
+
 function RecenterControl({
   points,
   teenLocation,
@@ -512,9 +591,17 @@ function MapLegend({ factors, routes, activeRouteId }) {
     ({ route }) => route.routeId === activeRouteId,
   )?.route;
   const displayRoute = selectedRoute || (routes.length === 1 ? routes[0].route : null);
-  const sourceLabel = factors.length
-    ? "Objective factors · Redmond-area demo data"
-    : "Map tiles · OpenStreetMap";
+  const hasLiveIncidents = factors.some((factor) =>
+    String(factor.source || "").includes("City of Redmond"),
+  );
+  const hasFallbackIncidents = factors.some((factor) => factor.isFallback);
+  const sourceLabel = hasLiveIncidents
+    ? "Live incident context · City of Redmond"
+    : hasFallbackIncidents
+      ? "Incident context · labeled offline fallback"
+      : factors.length
+        ? "Objective route context"
+        : "Map tiles · OpenStreetMap";
 
   const stopPropagation = (event) => event.stopPropagation();
 
@@ -552,7 +639,7 @@ function MapLegend({ factors, routes, activeRouteId }) {
         onWheel={stopPropagation}
       >
         <div className="map-legend__panel leaflet-control">
-          {(presentFactorTypes.length > 0 || routes.length > 1) && (
+          {(presentFactorTypes.length > 0 || routes.length > 1 || displayRoute?.mode === "transit") && (
             <>
               <strong className="map-legend__title">Map key</strong>
               <ul className="map-legend__list">
@@ -571,6 +658,18 @@ function MapLegend({ factors, routes, activeRouteId }) {
                         aria-hidden="true"
                       />
                       Other route
+                    </li>
+                  </>
+                )}
+                {displayRoute?.mode === "transit" && (
+                  <>
+                    <li className="map-legend__item">
+                      <span className="map-legend__transit-line" aria-hidden="true" />
+                      Transit ride
+                    </li>
+                    <li className="map-legend__item">
+                      <span className="map-legend__walk-line" aria-hidden="true" />
+                      Access walking
                     </li>
                   </>
                 )}
@@ -724,6 +823,12 @@ export default function MapView({
             />
           );
         })}
+
+        {orderedRoutes
+          .filter(({ route }) => route.routeId === activeRouteId && route.mode === "transit")
+          .map(({ route }) => (
+            <TransitRouteDetail key={`${route.routeId}-transit-detail`} route={route} />
+          ))}
 
         {cleanTrail.length > 1 && (
           <Polyline

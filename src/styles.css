@@ -201,6 +201,46 @@ h4 {
   background: rgba(255, 255, 255, 0.08);
 }
 
+.nav-planner-link,
+.planner-back-link {
+  min-height: 42px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  color: var(--ink);
+  border-radius: 10px;
+  background: var(--lime);
+  font-size: 13px;
+  font-weight: 700;
+  text-decoration: none;
+  transition: transform 180ms ease, background-color 180ms ease;
+}
+
+.nav-planner-link {
+  justify-self: end;
+  padding: 0 17px;
+}
+
+.nav-planner-link:hover,
+.planner-back-link:hover {
+  background: var(--lime-soft);
+  transform: translateY(-1px);
+}
+
+.planner-back-link {
+  padding: 0 14px;
+  color: rgba(247, 251, 248, 0.78);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.05);
+  font-weight: 600;
+}
+
+.planner-back-link:hover {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.1);
+}
+
 .mode-toggle {
   justify-self: end;
   display: flex;
@@ -579,6 +619,61 @@ h4 {
   background: var(--paper);
 }
 
+.planner-page-shell {
+  background:
+    radial-gradient(circle at 82% 4%, rgba(184, 243, 107, 0.12), transparent 28rem),
+    var(--ink);
+}
+
+.planner-page-main {
+  min-height: 100vh;
+  padding: 130px clamp(14px, 3vw, 48px) 64px;
+}
+
+.planner-route-section {
+  width: min(1480px, 100%);
+  margin: 0 auto;
+}
+
+.planner-route-heading {
+  margin: 0 auto 34px;
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(300px, 0.6fr);
+  align-items: end;
+  gap: 54px;
+  color: #f7fbf8;
+}
+
+.planner-route-heading .section-kicker {
+  color: var(--lime);
+}
+
+.planner-route-heading h1 {
+  margin-top: 7px;
+  font-size: clamp(2.8rem, 5vw, 5.7rem);
+  font-weight: 500;
+  line-height: 0.95;
+  letter-spacing: -0.055em;
+}
+
+.planner-route-heading > p {
+  padding-bottom: 7px;
+  color: rgba(247, 251, 248, 0.64);
+  font-size: 15px;
+  line-height: 1.55;
+}
+
+.brand-mark-compact {
+  width: 39px;
+  height: 39px;
+  border-radius: 11px;
+}
+
+.brand-mark-compact svg {
+  width: 25px;
+  height: 25px;
+}
+
 .section-heading {
   width: min(1480px, 100%);
   margin: 0 auto 48px;
@@ -879,6 +974,29 @@ h4 {
   border-left: 1px dashed #94a18f;
 }
 
+.swap-route-button {
+  position: absolute;
+  top: 58px;
+  right: 14px;
+  z-index: 4;
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  color: #506057;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: var(--paper-bright);
+  box-shadow: 0 4px 12px rgba(20, 39, 27, 0.08);
+  cursor: pointer;
+  transition: transform 180ms ease, background-color 180ms ease;
+}
+
+.swap-route-button:hover {
+  background: var(--lime-soft);
+  transform: rotate(12deg);
+}
+
 .quick-destinations {
   margin: 11px 0 18px;
   display: flex;
@@ -895,6 +1013,9 @@ h4 {
   min-height: 34px;
   padding: 0 11px;
   flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
   color: #566158;
   border: 1px solid var(--line);
   border-radius: 9px;
@@ -902,6 +1023,55 @@ h4 {
   cursor: pointer;
   font-size: 11px;
   font-weight: 600;
+}
+
+.quick-destinations button:disabled {
+  cursor: wait;
+  opacity: 0.55;
+}
+
+.spin {
+  animation: guardian-spin 900ms linear infinite;
+}
+
+@keyframes guardian-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.planner-error {
+  margin-top: 12px;
+  padding: 12px;
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  color: #752d28;
+  border: 1px solid rgba(175, 67, 57, 0.22);
+  border-radius: 12px;
+  background: #fff0ed;
+}
+
+.planner-error > svg {
+  margin-top: 1px;
+  flex: 0 0 auto;
+}
+
+.planner-error div {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.planner-error strong {
+  font-size: 12px;
+}
+
+.planner-error span {
+  color: #8a4b45;
+  font-size: 11px;
+  line-height: 1.35;
 }
 
 .quick-destinations button:hover {
@@ -974,6 +1144,76 @@ h4 {
   margin-top: 22px;
   padding-top: 18px;
   border-top: 1px solid var(--line);
+}
+
+.resolved-route-points {
+  margin-bottom: 13px;
+  padding: 8px 9px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+  gap: 6px;
+  color: #6f796f;
+  border-radius: 9px;
+  background: #efede6;
+  font-size: 9px;
+}
+
+.resolved-route-points span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.resolved-route-points span:last-child {
+  text-align: right;
+}
+
+.live-data-status {
+  margin: 11px 0;
+  padding: 10px 11px;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  border: 1px solid var(--line);
+  border-radius: 11px;
+  background: #f5f3ec;
+}
+
+.live-data-dot {
+  width: 8px;
+  height: 8px;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  background: #9a9388;
+}
+
+.live-data-dot.is-live {
+  background: #4f8b52;
+  box-shadow: 0 0 0 4px rgba(79, 139, 82, 0.12);
+}
+
+.live-data-status div {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.live-data-status strong {
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.live-data-status div span {
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 9px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.planner-map-message {
+  max-width: min(350px, calc(100% - 32px));
 }
 
 .results-heading {
@@ -2589,6 +2829,24 @@ h4 {
   background: repeating-linear-gradient(90deg, #8a5d64 0 4px, transparent 4px 7px);
 }
 
+.map-legend__transit-line,
+.map-legend__walk-line {
+  width: 18px;
+  height: 4px;
+  flex: 0 0 auto;
+  border-radius: 99px;
+  background: #315f72;
+}
+
+.map-legend__walk-line {
+  height: 2px;
+  background: repeating-linear-gradient(90deg, #4f6558 0 3px, transparent 3px 6px);
+}
+
+.map-transit-stop {
+  filter: drop-shadow(0 2px 3px rgba(20, 44, 31, 0.22));
+}
+
 .map-legend__factor {
   width: 7px;
   height: 7px;
@@ -3311,6 +3569,19 @@ h4 {
     display: none;
   }
 
+  .planner-back-link {
+    display: none;
+  }
+
+  .planner-route-heading {
+    grid-template-columns: 1fr;
+    gap: 18px;
+  }
+
+  .planner-route-heading > p {
+    max-width: 680px;
+  }
+
   .hero {
     min-height: auto;
     padding-top: 160px;
@@ -3479,6 +3750,19 @@ h4 {
   .site-nav {
     min-height: 62px;
     border-radius: 16px;
+  }
+
+  .planner-page-main {
+    padding: 108px 12px 34px;
+  }
+
+  .planner-route-heading {
+    margin-bottom: 25px;
+    padding: 0 8px;
+  }
+
+  .planner-route-heading h1 {
+    font-size: clamp(2.75rem, 11vw, 4.8rem);
   }
 
   .brand-mark {
@@ -3729,6 +4013,16 @@ h4 {
 @media (max-width: 560px) {
   .brand-name {
     font-size: 15px;
+  }
+
+  .nav-planner-link {
+    min-height: 38px;
+    padding: 0 12px;
+    font-size: 12px;
+  }
+
+  .nav-planner-link svg {
+    display: none;
   }
 
   .mode-toggle button {

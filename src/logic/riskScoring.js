@@ -1,11 +1,11 @@
-import { distanceToPathMeters, haversineMeters } from './geo.js';
+import { distanceToPathMeters, haversineMeters, pathLengthMeters } from './geo.js';
 
 export const ZONE_LABELS = {
-  property_crime: 'property crime',
-  violent_crime: 'violent crime',
+  property_crime: 'property-incident',
+  violent_crime: 'personal-safety incident',
   collision: 'high-collision',
   low_light: 'poorly lit',
-  user_reported: 'community reported'
+  user_reported: 'community-observation'
 };
 
 export function getRecencyWeight(recencyDays) {
@@ -236,7 +236,17 @@ export function scoreRoute(routePoints, incidentZones = [], options = {}) {
     }
   }
 
-  let score = raw * SCORE_SCALE;
+  const assessedDistanceMeters = assessmentPaths.reduce(
+    (total, path) => total + pathLengthMeters(path),
+    0
+  );
+  // Candidate lines can contain hundreds of vertices, while the incident feed
+  // can contain several records at one generalized location. Normalize the
+  // accumulated signal into 100 m exposure units so longer/densely encoded
+  // routes do not saturate the score merely because they contain more data.
+  const exposureUnits = Math.max(1, assessedDistanceMeters / 100);
+  const incidentRisk = (raw / exposureUnits) * SCORE_SCALE;
+  let score = incidentRisk;
 
   let darkPenalty = 0;
   if (isAfterDark(currentTime)) {
@@ -270,19 +280,27 @@ export function scoreRoute(routePoints, incidentZones = [], options = {}) {
   for (const type of Object.keys(ZONE_LABELS)) {
     const c = groupCount(crossed, type);
     if (c > 0) {
-      reasons.push(`Passes directly through ${c} ${ZONE_LABELS[type]} zone${c > 1 ? 's' : ''}`);
+      reasons.push(
+        c > 12
+          ? `Recent mapped ${ZONE_LABELS[type]} reports influence parts of this route`
+          : `Passes close to ${c} mapped ${ZONE_LABELS[type]} report${c > 1 ? 's' : ''}`
+      );
     }
   }
   for (const type of Object.keys(ZONE_LABELS)) {
     const n = groupCount(near, type);
     if (n > 0) {
-      reasons.push(`Runs close to ${n} ${ZONE_LABELS[type]} zone${n > 1 ? 's' : ''}`);
+      reasons.push(
+        n > 12
+          ? `Additional ${ZONE_LABELS[type]} context appears near the route envelope`
+          : `Runs near ${n} mapped ${ZONE_LABELS[type]} report${n > 1 ? 's' : ''}`
+      );
     }
   }
   if (darkPenalty > 0) reasons.push('Trip happens after dark');
   if (safeBonus > 0) reasons.push('Passes trusted safe places along the way');
   if (crossed.length === 0 && near.length === 0) {
-    reasons.push('Avoids every recent incident zone in the area');
+    reasons.push('Keeps distance from recent mapped incidents in the route area');
   }
   if (normalizedMode === 'transit') {
     reasons.push(`${transitRisk.waitMinutes} minutes of stop waiting included in the safety score`);
@@ -309,7 +327,9 @@ export function scoreRoute(routePoints, incidentZones = [], options = {}) {
     transitRisk,
     breakdown: {
       walkingRisk: roundTo(walkingRisk, 2),
-      incidentRisk: roundTo(raw * SCORE_SCALE, 2),
+      incidentRisk: roundTo(incidentRisk, 2),
+      assessedDistanceMeters: Math.round(assessedDistanceMeters),
+      exposureUnits: roundTo(exposureUnits, 2),
       afterDarkRisk: darkPenalty,
       safePlaceCredit: safeBonus,
       transitRisk: transitRisk.total
@@ -318,19 +338,23 @@ export function scoreRoute(routePoints, incidentZones = [], options = {}) {
 }
 
 export function explainScore(result, label) {
-  const level = result.level.toLowerCase();
+  const conditions = conditionScoreFromRisk(result.score);
   const crossed = result.crossedZones.length;
   const near = result.nearbyZones.length;
   const transitContext = result.mode === 'transit'
     ? ` Waiting, transfers, and service status add ${result.transitRisk.total} risk points.`
     : '';
   if (crossed === 0 && near === 0) {
-    return `The ${label} route has ${level} risk because it avoids every mapped incident zone on the way.${transitContext}`;
+    return `The ${label} route has a ${conditions}/100 conditions score and keeps distance from recent mapped incidents along the way.${transitContext}`;
   }
   const parts = [];
-  if (crossed > 0) parts.push(`${crossed} zone${crossed > 1 ? 's' : ''} it passes through`);
-  if (near > 0) parts.push(`${near} zone${near > 1 ? 's' : ''} it passes near`);
-  return `The ${label} route has ${level} risk because of ${parts.join(' and ')}, weighted by how recent and how severe those reports are.${transitContext}`;
+  if (crossed > 0) {
+    parts.push(crossed > 12 ? 'the concentration of nearby reports' : `${crossed} nearby report${crossed > 1 ? 's' : ''}`);
+  }
+  if (near > 0) {
+    parts.push(near > 12 ? 'additional context at the route-area edge' : `${near} report${near > 1 ? 's' : ''} at the edge of the route area`);
+  }
+  return `The ${label} route has a ${conditions}/100 conditions score based on ${parts.join(' and ')}, weighted by recency, severity, and distance.${transitContext}`;
 }
 
 export function findNearbyIncidentZone(location, incidentZones) {

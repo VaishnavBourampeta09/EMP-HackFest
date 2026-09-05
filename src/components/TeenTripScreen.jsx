@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import {
   ArrowLeft,
   ArrowRight,
+  ArrowsClockwise,
   Bus,
   Check,
   Clock,
@@ -16,18 +17,17 @@ import {
   ShieldCheck,
   Siren,
   Sparkle,
+  WarningCircle,
   X,
 } from "@phosphor-icons/react";
 import RouteCard from "./RouteCard.jsx";
 import CheckinSheet from "./CheckinSheet.jsx";
 import {
-  planRoutes,
   startTrip,
   endTrip,
   expireCheckin,
   respondCheckin,
   sendSos,
-  zones,
   places,
 } from "../actions.js";
 import demoRoutes from "../data/demo_routes.json";
@@ -191,7 +191,7 @@ function ActiveTripView({ trip, checkin, locationUpdates, simulation }) {
   ];
   const activeStateIndex = states.findIndex((item) => item.id === state);
 
-  const directions = trip.route.legs?.length
+  const directions = trip.mode === "transit" && trip.route.legs?.length
     ? trip.route.legs.map((leg) => {
         const legType = String(leg.type || leg.mode).toLowerCase();
         if (legType === "wait") {
@@ -202,10 +202,14 @@ function ActiveTripView({ trip, checkin, locationUpdates, simulation }) {
           };
         }
         if (legType === "transit" || legType === "bus") {
+          const liveDetail = leg.realTime ? " · live arrival" : "";
+          const stopDetail = Number.isFinite(leg.stopCount)
+            ? ` · ${leg.stopCount} stops`
+            : "";
           return {
             icon: Bus,
             title: `${leg.routeShortName || "Bus"} toward ${leg.headsign || leg.to}`,
-            detail: `${leg.durationMinutes ?? 0} min · ${leg.stopCount ?? 0} stops`,
+            detail: `${leg.durationMinutes ?? 0} min${stopDetail}${liveDetail}`,
           };
         }
         return {
@@ -214,7 +218,15 @@ function ActiveTripView({ trip, checkin, locationUpdates, simulation }) {
           detail: `${leg.durationMinutes ?? 0} min walking`,
         };
       })
-    : [
+    : trip.route.instructions?.length
+      ? trip.route.instructions.slice(0, 5).map((step) => ({
+          icon: NavigationArrow,
+          title: step.instruction || "Continue on the walking route",
+          detail: step.distanceMeters
+            ? `${Math.max(10, Math.round(step.distanceMeters / 10) * 10)} m`
+            : "Follow the mapped route",
+        }))
+      : [
         {
           icon: NavigationArrow,
           title: "Continue toward NE 85th Street",
@@ -363,7 +375,7 @@ function ActiveTripView({ trip, checkin, locationUpdates, simulation }) {
 
       <div className="active-map-panel">
         <MapView
-          zones={zones}
+          zones={trip.route.contextFactors || []}
           places={places}
           routes={[trip.route]}
           activeRouteId={trip.route.routeId}
@@ -389,14 +401,19 @@ function ActiveTripView({ trip, checkin, locationUpdates, simulation }) {
 
 export default function TeenTripScreen() {
   const { trip, checkin, locationUpdates, simulation, users } = useStore();
-  const [destinationName, setDestinationName] = useState(demoRoutes.destination.name);
-  const [originName] = useState(demoRoutes.origin.name);
-  const [destination, setDestination] = useState(demoRoutes.destination);
+  const [originName, setOriginName] = useState("Redmond Library, Redmond, WA");
+  const [destinationName, setDestinationName] = useState(
+    "Downtown Redmond Station, Redmond, WA",
+  );
   const [travelMode, setTravelMode] = useState("walking");
   const [departureTime, setDepartureTime] = useState("20:40");
+  const [plan, setPlan] = useState(null);
   const [selectedRoute, setSelectedRoute] = useState(null);
   const [consentOpen, setConsentOpen] = useState(false);
   const [isComparing, setIsComparing] = useState(false);
+  const [planningError, setPlanningError] = useState(null);
+  const [isLocating, setIsLocating] = useState(false);
+  const requestRef = useRef(null);
 
   const currentTime = useMemo(() => {
     const date = new Date();
@@ -405,20 +422,103 @@ export default function TeenTripScreen() {
     return date;
   }, [departureTime]);
 
-  const routes = useMemo(
-    () =>
-      destination
-        ? planRoutes(destination, demoRoutes.origin, {
-            mode: travelMode,
-            currentTime,
-          })
-        : [],
-    [currentTime, destination, travelMode],
-  );
+  const routes = plan?.routes || [];
+  const incidents = plan?.incidents || [];
+
+  const compareRoutes = useCallback(async () => {
+    const origin = originName.trim();
+    const destination = destinationName.trim();
+    if (!origin || !destination || isComparing) return;
+
+    requestRef.current?.abort();
+    const controller = new AbortController();
+    requestRef.current = controller;
+    setIsComparing(true);
+    setPlanningError(null);
+
+    try {
+      const response = await fetch("/api/plan", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        signal: controller.signal,
+        body: JSON.stringify({
+          origin,
+          destination,
+          mode: travelMode,
+          departureTime: currentTime.toISOString(),
+          maxCandidates: 3,
+        }),
+      });
+      const payload = await response.json();
+      if (!response.ok || !payload.ok) {
+        throw new Error(
+          payload?.error?.message || "GuardianRoute could not plan this trip.",
+        );
+      }
+
+      const contextFactors = payload.incidents || [];
+      setPlan({
+        ...payload,
+        routes: payload.routes.map((route) => ({
+          ...route,
+          contextFactors,
+          dataMetadata: payload.metadata,
+        })),
+      });
+    } catch (error) {
+      if (error.name === "AbortError") return;
+      setPlan(null);
+      setPlanningError(error.message);
+    } finally {
+      if (requestRef.current === controller) {
+        requestRef.current = null;
+        setIsComparing(false);
+      }
+    }
+  }, [currentTime, destinationName, isComparing, originName, travelMode]);
+
+  useEffect(() => {
+    const initialRequest = window.setTimeout(() => compareRoutes(), 100);
+    return () => window.clearTimeout(initialRequest);
+    // Run once with the intentional default trip. Subsequent input changes are
+    // explicit so public geocoding is never called on each keystroke.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => () => requestRef.current?.abort(), []);
 
   useEffect(() => {
     setSelectedRoute(routes.find((route) => route.recommended) || routes[0] || null);
   }, [routes]);
+
+  const invalidatePlan = () => {
+    requestRef.current?.abort();
+    requestRef.current = null;
+    setIsComparing(false);
+    setPlan(null);
+    setSelectedRoute(null);
+    setPlanningError(null);
+  };
+
+  const useCurrentLocation = () => {
+    if (!navigator.geolocation) {
+      setPlanningError("This browser does not expose the current location.");
+      return;
+    }
+    setIsLocating(true);
+    navigator.geolocation.getCurrentPosition(
+      ({ coords }) => {
+        setOriginName(`${coords.latitude.toFixed(6)},${coords.longitude.toFixed(6)}`);
+        invalidatePlan();
+        setIsLocating(false);
+      },
+      () => {
+        setPlanningError("Location access was unavailable. Enter a starting point instead.");
+        setIsLocating(false);
+      },
+      { enableHighAccuracy: true, timeout: 8_000, maximumAge: 30_000 },
+    );
+  };
 
   const active = trip && (trip.status === "active" || trip.status === "alert");
   if (active) {
@@ -432,15 +532,6 @@ export default function TeenTripScreen() {
     );
   }
 
-  const compareRoutes = () => {
-    if (!destinationName.trim()) return;
-    setIsComparing(true);
-    window.setTimeout(() => {
-      setDestination(demoRoutes.destination);
-      setIsComparing(false);
-    }, 540);
-  };
-
   return (
     <div className="route-planner-layout">
       <aside className="route-planner-sidebar">
@@ -453,9 +544,33 @@ export default function TeenTripScreen() {
           <div className="route-field">
             <span className="field-marker field-marker-origin" aria-hidden="true" />
             <label htmlFor="origin">Starting point</label>
-            <input id="origin" value={originName} readOnly />
+            <input
+              id="origin"
+              value={originName}
+              onChange={(event) => {
+                setOriginName(event.target.value);
+                invalidatePlan();
+              }}
+              onKeyDown={(event) => {
+                if (event.key === "Enter") compareRoutes();
+              }}
+              placeholder="Place, address, or lat,lng"
+              autoComplete="street-address"
+            />
             <NavigationArrow size={18} weight="fill" aria-hidden="true" />
           </div>
+          <button
+            type="button"
+            className="swap-route-button"
+            aria-label="Swap starting point and destination"
+            onClick={() => {
+              setOriginName(destinationName);
+              setDestinationName(originName);
+              invalidatePlan();
+            }}
+          >
+            <ArrowsClockwise size={15} weight="bold" aria-hidden="true" />
+          </button>
           <span className="field-connector" aria-hidden="true" />
           <div className="route-field">
             <span className="field-marker field-marker-destination" aria-hidden="true" />
@@ -465,28 +580,33 @@ export default function TeenTripScreen() {
               value={destinationName}
               onChange={(event) => {
                 setDestinationName(event.target.value);
-                setDestination(null);
+                invalidatePlan();
               }}
               onKeyDown={(event) => {
                 if (event.key === "Enter") compareRoutes();
               }}
-              placeholder="Search Redmond"
+              placeholder="Place, address, or lat,lng"
+              autoComplete="street-address"
             />
             <MapPin size={19} weight="fill" aria-hidden="true" />
           </div>
         </div>
 
         <div className="quick-destinations" aria-label="Saved destinations">
+          <button type="button" onClick={useCurrentLocation} disabled={isLocating}>
+            <NavigationArrow size={13} weight="fill" aria-hidden="true" />
+            {isLocating ? "Locating…" : "My location"}
+          </button>
           {places
             .filter((place) => place.name !== demoRoutes.origin.name)
-            .slice(0, 3)
+            .slice(0, 2)
             .map((place) => (
               <button
                 key={place.id}
                 type="button"
                 onClick={() => {
-                  setDestinationName(place.name);
-                  setDestination(demoRoutes.destination);
+                  setDestinationName(`${place.name}, Redmond, WA`);
+                  invalidatePlan();
                 }}
               >
                 {place.name}
@@ -496,7 +616,10 @@ export default function TeenTripScreen() {
 
         <TravelModeToggle
           value={travelMode}
-          onChange={(nextMode) => setTravelMode(nextMode)}
+          onChange={(nextMode) => {
+            setTravelMode(nextMode);
+            invalidatePlan();
+          }}
         />
 
         <div className="departure-row">
@@ -508,23 +631,49 @@ export default function TeenTripScreen() {
             id="departure-time"
             type="time"
             value={departureTime}
-            onChange={(event) => setDepartureTime(event.target.value)}
+            onChange={(event) => {
+              setDepartureTime(event.target.value);
+              invalidatePlan();
+            }}
           />
         </div>
 
-        {!destination && (
-          <button
-            type="button"
-            className="button button-lime button-block"
-            onClick={compareRoutes}
-            disabled={!destinationName.trim() || isComparing}
-          >
-            {isComparing ? "Comparing reasonable routes…" : "Compare routes"}
-          </button>
+        <button
+          type="button"
+          className="button button-lime button-block"
+          onClick={compareRoutes}
+          disabled={!originName.trim() || !destinationName.trim() || isComparing}
+        >
+          {isComparing ? (
+            <>
+              <ArrowsClockwise className="spin" size={18} weight="bold" aria-hidden="true" />
+              Building route candidates…
+            </>
+          ) : (
+            <>
+              Compare routes
+              <ArrowRight size={18} weight="bold" aria-hidden="true" />
+            </>
+          )}
+        </button>
+
+        {planningError && (
+          <div className="planner-error" role="alert">
+            <WarningCircle size={18} weight="fill" aria-hidden="true" />
+            <div>
+              <strong>Route unavailable</strong>
+              <span>{planningError}</span>
+            </div>
+          </div>
         )}
 
-        {destination && (
+        {plan && routes.length > 0 && (
           <div className="route-results">
+            <div className="resolved-route-points" title={`${plan.origin.name} to ${plan.destination.name}`}>
+              <span>{plan.origin.name}</span>
+              <ArrowRight size={13} weight="bold" aria-hidden="true" />
+              <span>{plan.destination.name}</span>
+            </div>
             <div className="results-heading">
               <div>
                 <span>{routes.length} reasonable options</span>
@@ -532,7 +681,9 @@ export default function TeenTripScreen() {
               </div>
               <span className="night-weight">
                 <Sparkle size={14} weight="fill" aria-hidden="true" />
-                Night weighting
+                {currentTime.getHours() >= 19 || currentTime.getHours() < 6
+                  ? "Night weighting"
+                  : "Day weighting"}
               </span>
             </div>
 
@@ -555,6 +706,26 @@ export default function TeenTripScreen() {
               </p>
             </div>
 
+            <div className="live-data-status" role="status">
+              <span className={plan.metadata?.incidents?.live ? "live-data-dot is-live" : "live-data-dot"} />
+              <div>
+                <strong>
+                  {plan.metadata?.provider === "opentripplanner"
+                    ? "OpenTripPlanner"
+                    : plan.metadata?.provider === "mapbox"
+                      ? "Mapbox Directions"
+                      : "Valhalla pedestrian routing"}
+                </strong>
+                <span>
+                  {plan.metadata?.incidents?.live
+                    ? `${plan.metadata.incidents.scoredCount ?? incidents.length} live Redmond records scored · ${incidents.length} most relevant shown`
+                    : plan.metadata?.incidents?.fallback
+                      ? "Redmond service unavailable · labeled fallback context shown"
+                      : "No Redmond incident context applies to this route"}
+                </span>
+              </div>
+            </div>
+
             <button
               type="button"
               className="button button-lime button-block start-trip-button"
@@ -571,13 +742,22 @@ export default function TeenTripScreen() {
 
       <div className="route-map-panel">
         <MapView
-          zones={zones}
+          zones={incidents}
           places={places}
           routes={routes}
           activeRouteId={selectedRoute?.routeId}
           onRouteSelect={(route) => setSelectedRoute(route)}
           height={720}
         />
+        {!plan && !isComparing && (
+          <div className="map-resting-message planner-map-message">
+            <Path size={24} weight="bold" aria-hidden="true" />
+            <div>
+              <strong>Ready for any point-to-point trip</strong>
+              <span>Enter place names, full addresses, or latitude/longitude pairs.</span>
+            </div>
+          </div>
+        )}
         {selectedRoute && (
           <div className="map-selection-summary">
             <span className="map-selection-icon">
