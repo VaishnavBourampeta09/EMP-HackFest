@@ -1,9 +1,9 @@
-import { useEffect, useState } from 'react';
-import demoUsers from './data/demo_users.json';
-import { DEFAULT_SETTINGS } from './logic/tripMonitoring.js';
+import { useEffect, useState } from "react";
+import demoUsers from "./data/demo_users.json";
+import { DEFAULT_SETTINGS } from "./logic/tripMonitoring.js";
 
-const STORAGE_KEY = 'guardian-route-state-v1';
-const CHANNEL_NAME = 'guardian-route';
+const STORAGE_KEY = "guardian-route-state-v1";
+const CHANNEL_NAME = "guardian-route";
 
 const initialState = {
   users: demoUsers,
@@ -12,16 +12,25 @@ const initialState = {
   alerts: [],
   locationUpdates: [],
   settings: { ...DEFAULT_SETTINGS },
-  simulation: { running: false, index: 0, offRoute: false, stopped: false, minutesStopped: 0, lastTickAt: 0 }
+  simulation: {
+    running: false,
+    index: 0,
+    offRoute: false,
+    stopped: false,
+    minutesStopped: 0,
+    lastTickAt: 0,
+  },
 };
 
-const safeStorage = typeof window !== 'undefined' ? window.localStorage : null;
+const safeStorage = typeof window !== "undefined" ? window.localStorage : null;
 
 let state = load();
 const listeners = new Set();
-const channel = typeof window !== 'undefined' && typeof window.BroadcastChannel !== 'undefined'
-  ? new window.BroadcastChannel(CHANNEL_NAME)
-  : null;
+const channel =
+  typeof window !== "undefined" &&
+  typeof window.BroadcastChannel !== "undefined"
+    ? new window.BroadcastChannel(CHANNEL_NAME)
+    : null;
 
 function load() {
   try {
@@ -61,7 +70,7 @@ export function getState() {
 }
 
 export function setState(updater) {
-  const next = typeof updater === 'function' ? updater(state) : updater;
+  const next = typeof updater === "function" ? updater(state) : updater;
   state = { ...state, ...next };
   emit();
   return state;
