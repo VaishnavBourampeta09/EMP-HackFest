@@ -29,7 +29,11 @@ for (const transportMode of ["walking", "transit"]) {
     ];
 
     for (const deprecatedFieldName of FORBIDDEN_LEGACY_FIELDS)
-      assert.equal(deprecatedFieldName in CandidateRoute, false, deprecatedFieldName);
+      assert.equal(
+        deprecatedFieldName in CandidateRoute,
+        false,
+        deprecatedFieldName,
+      );
 
     assert.equal(CandidateRoute.time_of_day, "night");
 
@@ -42,7 +46,8 @@ for (const transportMode of ["walking", "transit"]) {
     assert.ok(
       CandidateRoute.waypoints.every(
         ([LATITUDE_COORDINATE, longitudeCoordinate]) =>
-          Math.abs(LATITUDE_COORDINATE) <= 90 && Math.abs(longitudeCoordinate) <= 180,
+          Math.abs(LATITUDE_COORDINATE) <= 90 &&
+          Math.abs(longitudeCoordinate) <= 180,
       ),
     );
   }
@@ -54,7 +59,9 @@ for (const transportMode of ["walking", "transit"]) {
         safety_rating: availableOption.overall_safety_score,
         INCIDENT_CONCENTRATION_PER_KM: availableOption.incidentsPerKm,
         streetLightingAvailable: availableOption.lightingDataAvailable,
-        trip_segments_by_type: availableOption.legs.map((SEGMENT) => SEGMENT.type),
+        trip_segments_by_type: availableOption.legs.map(
+          (SEGMENT) => SEGMENT.type,
+        ),
       })),
     }),
   );
