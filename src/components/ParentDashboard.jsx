@@ -11,23 +11,22 @@ import {
   LockKey,
   MapPin,
   ShieldCheck,
-  SlidersHorizontal,
   Warning,
+  WarningOctagon,
 } from "@phosphor-icons/react";
 import AlertCard from "./AlertCard.jsx";
 import JourneySummaryCard from "./JourneySummaryCard.jsx";
 import DangerBox from "./DangerBox.jsx";
 import StreetLevelView from "./StreetLevelView.jsx";
+import MapSplit from "./MapSplit.jsx";
 import ReportDangerButton from "./ReportDangerButton.jsx";
-import SimulationControls from "./SimulationControls.jsx";
 import {
   incidentsNearRoute,
   summarizeIncidents,
   shortPlaceName,
 } from "../logic/safetyInsights.js";
-import { acknowledgeAlert, places, endTrip } from "../actions.js";
-import { useStore, setState } from "../store.js";
-import { DEFAULT_SETTINGS } from "../logic/tripMonitoring.js";
+import { acknowledgeAlert, places } from "../actions.js";
+import { useStore } from "../store.js";
 import { formatMinutes } from "../logic/duration.js";
 
 const MapView = dynamic(() => import("./MapView.jsx"), {
@@ -40,31 +39,12 @@ const MapView = dynamic(() => import("./MapView.jsx"), {
   ),
 });
 
-const SETTING_LABELS = {
-  offRouteMeters: {
-    title: "Sustained route changes",
-    detail: "Check in after a meaningful route deviation",
-  },
-  longStopMinutes: {
-    title: "Unexpected stops",
-    detail: "Check in after 7 simulated minutes stopped",
-  },
-  checkRiskZones: {
-    title: "Changing route conditions",
-    detail: "Offer a reroute when conditions change nearby",
-  },
-  etaDelayMinutes: {
-    title: "Significantly overdue",
-    detail: "Escalate when arrival slips by 10+ minutes",
-  },
-};
-
 function conditionScore(route) {
   return route?.conditionScore ?? Math.max(0, 100 - (route?.riskScore ?? 0));
 }
 
 export default function ParentDashboard() {
-  const { trip, alerts, settings, users, locationUpdates, checkin, reports } = useStore();
+  const { trip, alerts, users, locationUpdates, checkin, reports } = useStore();
   const pending = alerts.filter((alert) => alert.status === "pending");
   const lastUpdate = locationUpdates[0];
   const secondsAgo = lastUpdate
@@ -90,10 +70,7 @@ export default function ParentDashboard() {
       try {
         new Notification(
           alert.type === "sos" ? "Sentinel — help requested" : "Sentinel — trip alert",
-          {
-            body: alert.message,
-            tag: alert.id,
-          },
+          { body: alert.message, tag: alert.id },
         );
       } catch {
         // Notification construction can throw in unsupported contexts; the
@@ -131,22 +108,6 @@ export default function ParentDashboard() {
   );
   const closestIncident = nearbyIncidents[0] ?? null;
 
-  const toggle = (key) => {
-    if (key === "checkRiskZones") {
-      setState({
-        settings: { ...settings, checkRiskZones: !settings.checkRiskZones },
-      });
-      return;
-    }
-    const isOn = settings[key] > 0;
-    setState({
-      settings: { ...settings, [key]: isOn ? 0 : DEFAULT_SETTINGS[key] },
-    });
-  };
-
-  const getSettingState = (key) =>
-    key === "checkRiskZones" ? settings.checkRiskZones : settings[key] > 0;
-
   if (!trip) {
     return (
       <div className="map-viewport">
@@ -180,39 +141,10 @@ export default function ParentDashboard() {
             </div>
             <h3>Privacy is the default state.</h3>
             <p>
-              Sentinel is trip-scoped, not always-on tracking. Switch to
-              the Teen view, choose a route, and start a Safe Trip to see this
-              dashboard update live.
+              Sentinel is trip-scoped, not always-on tracking. This dashboard
+              stays empty until a Safe Trip begins.
             </p>
           </div>
-
-          <section className="guardian-rules compact-rules">
-            <div className="sidebar-section-heading">
-              <SlidersHorizontal size={19} weight="bold" aria-hidden="true" />
-              <h3>Monitoring preferences</h3>
-            </div>
-            {Object.entries(SETTING_LABELS).map(([key, copy]) => {
-              const on = getSettingState(key);
-              return (
-                <div className="setting-row" key={key}>
-                  <div>
-                    <strong>{copy.title}</strong>
-                    <span>{copy.detail}</span>
-                  </div>
-                  <button
-                    type="button"
-                    role="switch"
-                    aria-checked={on}
-                    className={on ? "switch-control active" : "switch-control"}
-                    onClick={() => toggle(key)}
-                    aria-label={`${copy.title}: ${on ? "on" : "off"}`}
-                  >
-                    <span />
-                  </button>
-                </div>
-              );
-            })}
-          </section>
         </aside>
       </div>
     );
@@ -253,56 +185,100 @@ export default function ParentDashboard() {
 
   return (
     <div className="map-viewport">
-      {/* Map on the left, street-level corridor on the right. */}
-      <div className="map-base map-base-split">
-        <div className="map-pane">
-          <MapView
-            zones={incidents}
-            places={places}
-            routes={[trip.route]}
-            activeRouteId={trip.route.routeId}
-            teenLocation={trip.location}
-            trail={locationUpdates
-              .slice()
-              .reverse()
-              .map((update) => [update.lat, update.lng])}
-            height="100%"
-          />
-          <div className="guardian-map-card">
-            <div className="teen-avatar teen-avatar-small">{users.teen.name.charAt(0)}</div>
-            <div>
-              <span>{users.teen.name} is heading to</span>
-              <strong title={trip.destination.name}>
-                {shortPlaceName(trip.destination.name)}
-              </strong>
-            </div>
-            <div className="eta-chip">
-              <Clock size={16} weight="bold" aria-hidden="true" />
-              {formatMinutes(trip.etaMinutes)}
-            </div>
-          </div>
-        </div>
+      {/* Map and street-level corridor, proportioned by a draggable divider. */}
+      <div className="map-base">
+        <MapSplit
+          map={
+            <>
+              <MapView
+                zones={incidents}
+                places={places}
+                routes={[trip.route]}
+                activeRouteId={trip.route.routeId}
+                teenLocation={trip.location}
+                trail={locationUpdates
+                  .slice()
+                  .reverse()
+                  .map((update) => [update.lat, update.lng])}
+                height="100%"
+              />
+              <div className="guardian-map-card">
+                <div className="guardian-map-card-head">
+                  <div className="teen-avatar teen-avatar-small">
+                    {users.teen.name.charAt(0)}
+                  </div>
+                  <div className="guardian-map-card-who">
+                    <span>{users.teen.name} is heading to</span>
+                    <strong title={trip.destination.name}>
+                      {shortPlaceName(trip.destination.name)}
+                    </strong>
+                  </div>
+                  <div className="eta-chip">
+                    <Clock size={16} weight="bold" aria-hidden="true" />
+                    {formatMinutes(trip.etaMinutes)}
+                  </div>
+                </div>
 
-        <div className="street-pane">
-          <StreetLevelView
-            points={trip.route.points}
-            position={trip.location}
-            incidents={incidents}
-            title={`Where ${users.teen.name} is`}
-            subtitle="Following their position · past reports flagged"
-            fill
-          />
-        </div>
+                {/* What is actually around them, not just where they are. */}
+                <dl className="guardian-map-card-stats">
+                  <div>
+                    <dt>Nearby reports</dt>
+                    <dd>{incidentSummary.total}</dd>
+                  </div>
+                  <div>
+                    <dt>Serious</dt>
+                    <dd className={incidentSummary.serious > 0 ? "is-warn" : undefined}>
+                      {incidentSummary.serious}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt>This week</dt>
+                    <dd>{incidentSummary.lastWeek}</dd>
+                  </div>
+                  <div>
+                    <dt>Off route</dt>
+                    <dd>{trip.offRouteMeters ?? 0} m</dd>
+                  </div>
+                </dl>
+
+                {closestIncident && (
+                  <p className="guardian-map-card-danger">
+                    <WarningOctagon size={14} weight="fill" aria-hidden="true" />
+                    <span>
+                      <strong>
+                        {closestIncident.categoryLabel ||
+                          closestIncident.description ||
+                          "Reported incident"}
+                      </strong>{" "}
+                      · {closestIncident.distanceMeters} m from the route
+                      {closestIncident.generalizedLocation
+                        ? ` · ${closestIncident.generalizedLocation}`
+                        : ""}
+                    </span>
+                  </p>
+                )}
+              </div>
+            </>
+          }
+          street={
+            <StreetLevelView
+              points={trip.route.points}
+              position={trip.location}
+              incidents={incidents}
+              title={`Where ${users.teen.name} is`}
+              subtitle="Following their position · past reports flagged"
+              fill
+            />
+          }
+        />
       </div>
 
       <aside className="sidebar-float guardian-float" aria-labelledby="guardian-trip-title">
-        {/* Journey summary card - provides immediate context */}
         <JourneySummaryCard trip={trip} users={users} />
 
-        {/* Status banner inside sidebar */}
         <div className={`guardian-status-banner guardian-status-${status}`}>
           <div className="guardian-status-icon">
-            <StatusIcon size={23} weight="fill" aria-hidden="true" />
+            <StatusIcon size={22} weight="fill" aria-hidden="true" />
           </div>
           <div>
             <span>Live trip status</span>
@@ -311,7 +287,7 @@ export default function ParentDashboard() {
           </div>
           <div className="last-update">
             <span className={status === "calm" ? "pulse-live" : ""} />
-            Updated {secondsAgo === null ? "just now" : `${secondsAgo}s ago`}
+            {secondsAgo === null ? "just now" : `${secondsAgo}s ago`}
           </div>
         </div>
 
@@ -322,48 +298,32 @@ export default function ParentDashboard() {
           compact
         />
 
-        <ReportDangerButton location={trip.location} compact />
-
-        <SimulationControls compact />
-
-        {/* Trip facts strip */}
         <div className="guardian-trip-facts">
           <div>
-            <Footprints size={20} weight="bold" aria-hidden="true" />
+            <Footprints size={18} weight="bold" aria-hidden="true" />
             <span>Route</span>
             <strong>{trip.route.label}</strong>
           </div>
           <div>
-            <ShieldCheck size={20} weight="fill" aria-hidden="true" />
+            <ShieldCheck size={18} weight="fill" aria-hidden="true" />
             <span>Conditions</span>
             <strong>{conditionScore(trip.route)}/100</strong>
           </div>
           <div>
-            <MapPin size={20} weight="fill" aria-hidden="true" />
+            <MapPin size={18} weight="fill" aria-hidden="true" />
             <span>Off route</span>
             <strong>{trip.offRouteMeters ?? 0} m</strong>
           </div>
           <div>
-            <Eye size={20} weight="bold" aria-hidden="true" />
+            <Eye size={18} weight="bold" aria-hidden="true" />
             <span>Sharing</span>
             <strong>Trip only</strong>
           </div>
         </div>
-        <div className="teen-profile">
-          <span className="teen-avatar">{users.teen.name.charAt(0)}</span>
-          <div>
-            <span>Watching this trip</span>
-            <h2>{users.teen.name}</h2>
-          </div>
-          <span className="calm-status calm-status-live">
-            <span />
-            Live
-          </span>
-        </div>
 
         <section className="alerts-panel" aria-labelledby="alerts-heading">
           <div className="sidebar-section-heading">
-            <Bell size={19} weight="fill" aria-hidden="true" />
+            <Bell size={17} weight="fill" aria-hidden="true" />
             <h3 id="alerts-heading">Trip updates</h3>
             {pending.length > 0 && <span className="alert-count">{pending.length}</span>}
           </div>
@@ -378,19 +338,16 @@ export default function ParentDashboard() {
               <Bell size={15} weight="fill" aria-hidden="true" />
               {notifyPermission === "denied"
                 ? "Notifications blocked in browser settings"
-                : "Notify me on this device when an alert arrives"}
+                : "Notify me when an alert arrives"}
             </button>
           )}
 
           {alerts.length === 0 ? (
             <div className="calm-alert-state">
-              <ShieldCheck size={27} weight="fill" aria-hidden="true" />
+              <ShieldCheck size={22} weight="fill" aria-hidden="true" />
               <div>
                 <strong>Quiet is the intended state.</strong>
-                <p>
-                  Sentinel will check with {users.teen.name} before asking
-                  you to act.
-                </p>
+                <p>Sentinel checks with {users.teen.name} before asking you to act.</p>
               </div>
             </div>
           ) : (
@@ -407,58 +364,7 @@ export default function ParentDashboard() {
           )}
         </section>
 
-        <section className="guardian-rules" aria-labelledby="rules-heading">
-          <div className="sidebar-section-heading">
-            <SlidersHorizontal size={19} weight="bold" aria-hidden="true" />
-            <h3 id="rules-heading">Monitoring preferences</h3>
-          </div>
-          {Object.entries(SETTING_LABELS).map(([key, copy]) => {
-            const on = getSettingState(key);
-            return (
-              <div className="setting-row" key={key}>
-                <div>
-                  <strong>{copy.title}</strong>
-                  <span>{copy.detail}</span>
-                </div>
-                <button
-                  type="button"
-                  role="switch"
-                  aria-checked={on}
-                  className={on ? "switch-control active" : "switch-control"}
-                  onClick={() => toggle(key)}
-                  aria-label={`${copy.title}: ${on ? "on" : "off"}`}
-                >
-                  <span />
-                </button>
-              </div>
-            );
-          })}
-        </section>
-
-        <section className="guardian-emergency-controls" aria-labelledby="emergency-heading">
-          <div className="sidebar-section-heading">
-            <Warning size={19} weight="fill" aria-hidden="true" />
-            <h3 id="emergency-heading">Guardian controls</h3>
-          </div>
-          <button
-            type="button"
-            className="button button-danger button-block"
-            onClick={() => endTrip("cancelled")}
-            aria-label="End this trip"
-            title="Stops monitoring and ends the trip"
-          >
-            End trip
-          </button>
-          <p className="control-note">End the trip if you need immediate control or reach the destination.</p>
-        </section>
-
-        <div className="privacy-note">
-          <LockKey size={20} weight="fill" aria-hidden="true" />
-          <p>
-            Location sharing ends with this trip. No background family map and
-            no silent tracking between trips.
-          </p>
-        </div>
+        <ReportDangerButton location={trip.location} compact />
       </aside>
     </div>
   );

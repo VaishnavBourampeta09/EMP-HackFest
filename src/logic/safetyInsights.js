@@ -211,3 +211,31 @@ export function shortPlaceName(name, parts = 2) {
   if (segments.length <= parts) return segments.join(", ");
   return segments.slice(0, parts).join(", ");
 }
+
+/**
+ * A one-line danger read for a route card: the worst thing near this path and
+ * how close it is. Deliberately short — the card is a scan target, not a report.
+ */
+export function routeDangerSummary(route, incidents = []) {
+  const near = incidentsNearRoute(incidents, route, {
+    withinMeters: 250,
+    limit: Number.MAX_SAFE_INTEGER,
+  });
+
+  if (near.length === 0) {
+    return { level: "clear", text: "No recent reports within 250 m" };
+  }
+
+  const serious = near.filter((incident) => SEVERE_CATEGORIES.has(incident.category));
+  const worst = (serious.length > 0 ? serious : near)[0];
+  const label = (worst.categoryLabel || worst.description || "incident").toLowerCase();
+  const others = near.length - 1;
+
+  return {
+    level: serious.length > 0 ? "high" : "medium",
+    text:
+      others > 0
+        ? `${label}, ${worst.distanceMeters} m away · +${others} more nearby`
+        : `${label}, ${worst.distanceMeters} m away`,
+  };
+}

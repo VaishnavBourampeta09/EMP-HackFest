@@ -6,6 +6,7 @@ import {
   CaretLeft,
   CaretRight,
   Compass,
+  Crosshair,
   Eye,
   Pause,
   Play,
@@ -77,10 +78,13 @@ export default function StreetLevelView({
   const [status, setStatus] = useState("idle");
   const [index, setIndex] = useState(0);
   const [playing, setPlaying] = useState(autoPlay);
+  // Set once the viewer picks a spot themselves; clears when they resume.
+  const [manual, setManual] = useState(false);
   const [failedIds, setFailedIds] = useState(() => new Set());
   // Frames are ~600 KB, so track which have painted to avoid flashing an empty
   // stage between the element mounting and the photo arriving.
   const [loadedIds, setLoadedIds] = useState(() => new Set());
+  const [previousFrame, setPreviousFrame] = useState(null);
   const requestRef = useRef(null);
 
   // Only refetch when the route itself changes, not on every position tick.
@@ -117,6 +121,8 @@ export default function StreetLevelView({
         setMetadata(payload.metadata || null);
         setStatus((payload.frames || []).length > 0 ? "ready" : "empty");
         setIndex(0);
+        setManual(false);
+        setPreviousFrame(null);
       })
       .catch((error) => {
         if (error.name === "AbortError") return;
@@ -165,29 +171,57 @@ export default function StreetLevelView({
     return best;
   }, [position, usable]);
 
-  useEffect(() => {
-    if (followIndex !== null) setIndex(followIndex);
-  }, [followIndex]);
+  // Following is the default, but the moment someone picks a spot themselves
+  // the view stays put until they hand control back.
+  const isFollowing = followIndex !== null && !manual;
 
   useEffect(() => {
-    if (followIndex !== null || !playing || usable.length < 2) return undefined;
+    if (isFollowing && followIndex !== null) setIndex(followIndex);
+  }, [isFollowing, followIndex]);
+
+  useEffect(() => {
+    if (isFollowing || manual || !playing || usable.length < 2) return undefined;
     const id = window.setInterval(() => {
       setIndex((current) => (current + 1) % usable.length);
-    }, 2200);
+    }, 700);
     return () => window.clearInterval(id);
-  }, [followIndex, playing, usable.length]);
+  }, [isFollowing, manual, playing, usable.length]);
+
+  // Warm the next few frames so moving forward never shows an empty stage.
+  useEffect(() => {
+    if (usable.length === 0) return;
+    for (let offset = 1; offset <= 4; offset += 1) {
+      const next = usable[(index + offset) % usable.length];
+      if (!next) continue;
+      const img = new window.Image();
+      img.referrerPolicy = 'no-referrer';
+      img.src = next.imageUrl;
+    }
+  }, [index, usable]);
 
   const safeIndex = usable.length > 0 ? Math.min(index, usable.length - 1) : 0;
   const frame = usable[safeIndex] ?? null;
   const anchor = frame ? [frame.lat, frame.lng] : (points[0] ?? null);
   const externalUrl = googleStreetViewUrl(anchor, frame?.heading);
-  const isFollowing = followIndex !== null;
   const hazards = hazardsByFrame[safeIndex] ?? [];
   const worst = hazards[0] ?? null;
   const totalHazardSpots = hazardsByFrame.filter((list) => list.length > 0).length;
+  const canFollow = followIndex !== null;
+
+  // The last painted frame stays underneath so the incoming one can fade in
+  // over a picture rather than over an empty stage. Held in state (not mutated
+  // during render) so the base layer actually re-renders when it changes.
+  const previous = previousFrame;
+
+  useEffect(() => {
+    if (frame && loadedIds.has(frame.id) && previousFrame?.id !== frame.id) {
+      setPreviousFrame(frame);
+    }
+  }, [frame, loadedIds, previousFrame]);
 
   const goTo = (next) => {
     setPlaying(false);
+    setManual(true);
     setIndex(((next % usable.length) + usable.length) % usable.length);
   };
 
@@ -203,10 +237,12 @@ export default function StreetLevelView({
         <div className="street-view-titles">
           <strong>{title}</strong>
           <span>
-            {subtitle ??
-              (isFollowing
-                ? "Following the live position"
-                : "Playing through the route")}
+            {manual
+              ? "Paused where you chose"
+              : (subtitle ??
+                  (isFollowing
+                    ? "Following the live position"
+                    : "Playing through the route"))}
           </span>
         </div>
 
@@ -215,6 +251,20 @@ export default function StreetLevelView({
             <WarningOctagon size={13} weight="fill" aria-hidden="true" />
             {totalHazardSpots} hazard spot{totalHazardSpots === 1 ? "" : "s"}
           </span>
+        )}
+
+        {manual && canFollow && (
+          <button
+            type="button"
+            className="street-view-resume"
+            onClick={() => {
+              setManual(false);
+              setPlaying(autoPlay);
+            }}
+          >
+            <Crosshair size={13} weight="bold" aria-hidden="true" />
+            Follow again
+          </button>
         )}
 
         {!isFollowing && usable.length > 1 && (
@@ -257,9 +307,23 @@ export default function StreetLevelView({
 
         {frame && (
           <>
+            {/* Last painted frame sits underneath so the incoming one fades in
+                over a picture instead of over an empty stage. */}
+            {previous && previous.id !== frame.id && (
+              <img
+                key={`base-${previous.id}`}
+                className="street-view-image street-view-image-base"
+                src={previous.imageUrl}
+                alt=""
+                aria-hidden="true"
+                decoding="async"
+                referrerPolicy="no-referrer"
+              />
+            )}
+
             <img
               key={frame.id}
-              className="street-view-image"
+              className={`street-view-image${loadedIds.has(frame.id) ? " is-loaded" : ""}`}
               src={frame.imageUrl}
               alt={`Street-level view along the route, facing ${bearingLabel(frame.heading) ?? "ahead"}`}
               // Only the current frame is mounted, so it must load immediately;
@@ -275,7 +339,9 @@ export default function StreetLevelView({
               }
             />
 
-            {!loadedIds.has(frame.id) && (
+            {/* Only block the view on the very first frame; later ones fade in
+                over the previous picture instead of hiding it behind a spinner. */}
+            {!loadedIds.has(frame.id) && !previous && (
               <div className="street-view-loading" role="status">
                 <Spinner size={18} weight="bold" className="spin" aria-hidden="true" />
                 <span>Loading this block…</span>

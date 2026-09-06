@@ -10,6 +10,14 @@ import { useStore, setState, getState } from "../store.js";
 import { pushLocation, expireCheckin, endTrip } from "../actions.js";
 import { buildDeviationPath } from "../logic/simulation.js";
 
+/**
+ * Trip playback pace. One route point every 3s of wall time, each counted as
+ * 20 trip-seconds — roughly 7x real time, so a trip stays watchable for many
+ * minutes rather than finishing while you glance at the other tab.
+ */
+const TICK_MS = 3000;
+const TICK_SECONDS = 20;
+
 export default function PlannerApp() {
   const [mode, setMode] = useState("teen");
   const { trip, checkin, simulation } = useStore();
@@ -45,7 +53,7 @@ export default function PlannerApp() {
 
       const sim = state.simulation;
       if (!sim.running) return;
-      if (sim.lastTickAt && Date.now() - sim.lastTickAt < 900) return;
+      if (sim.lastTickAt && Date.now() - sim.lastTickAt < TICK_MS) return;
 
       if (sim.stopped) {
         setState({
@@ -55,13 +63,19 @@ export default function PlannerApp() {
             lastTickAt: Date.now(),
           },
         });
-        pushLocation(current.location, { speed: 0, elapsedSeconds: 60 });
+        pushLocation(current.location, { speed: 0, elapsedSeconds: TICK_SECONDS });
         return;
       }
 
       const routePoints = current.route.points || [];
       const path = sim.offRoute ? buildDeviationPath(routePoints) : routePoints;
       if (path.length === 0) return;
+
+      // Hold at the destination instead of ending the trip: the traveller
+      // decides when they have arrived, and auto-ending meant the trip vanished
+      // if you looked away for a minute.
+      if (!sim.offRoute && sim.index >= path.length - 1) return;
+
       const nextIndex = Math.min(sim.index + 1, path.length - 1);
       setState({
         simulation: {
@@ -71,11 +85,7 @@ export default function PlannerApp() {
           lastTickAt: Date.now(),
         },
       });
-      pushLocation(path[nextIndex], { speed: 1.4, elapsedSeconds: 60 });
-
-      if (!sim.offRoute && nextIndex === path.length - 1) {
-        endTrip("completed");
-      }
+      pushLocation(path[nextIndex], { speed: 1.4, elapsedSeconds: TICK_SECONDS });
     }, 1000);
     return () => window.clearInterval(id);
   }, []);

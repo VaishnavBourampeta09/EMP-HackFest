@@ -25,11 +25,10 @@ import CheckinSheet from "./CheckinSheet.jsx";
 import SafetyAlertsPanel from "./SafetyAlertsPanel.jsx";
 import RouteComparisonInfo from "./RouteComparisonInfo.jsx";
 import LocationPermissionPrompt from "./LocationPermissionPrompt.jsx";
-import SimulationModeBanner from "./SimulationModeBanner.jsx";
 import DangerBox from "./DangerBox.jsx";
 import ReportDangerButton from "./ReportDangerButton.jsx";
-import SimulationControls from "./SimulationControls.jsx";
 import StreetLevelView from "./StreetLevelView.jsx";
+import MapSplit from "./MapSplit.jsx";
 import SosSheet from "./SosSheet.jsx";
 import {
   incidentsNearRoute,
@@ -38,6 +37,7 @@ import {
   summarizeIncidents,
   nearestSafePlaces,
   shortPlaceName,
+  routeDangerSummary,
 } from "../logic/safetyInsights.js";
 import {
   lightingForRoute,
@@ -113,12 +113,6 @@ function StartTripSheet({ route, guardianName, onClose, onConfirm }) {
   if (!route) return null;
 
   const eta = new Date(Date.now() + route.durationMinutes * 60000);
-  const sharingItems = [
-    "Distance from the selected route",
-    "Unexpected stops and missed progress",
-    "Arrival compared with the expected ETA",
-  ];
-
   return (
     <div className="sheet-backdrop" role="presentation" onMouseDown={onClose}>
       <section
@@ -167,22 +161,22 @@ function StartTripSheet({ route, guardianName, onClose, onConfirm }) {
           </div>
         </div>
 
-        <div className="consent-list">
-          {sharingItems.map((item) => (
-            <div key={item}>
-              <Check size={17} weight="bold" aria-hidden="true" />
-              <span>{item}</span>
-            </div>
-          ))}
-        </div>
+        <p className="consent-note">
+          Shared only while the trip is active: distance from the route,
+          unexpected stops, and arrival against the expected time.
+        </p>
 
-        <div className="sheet-actions consent-actions">
-          <button type="button" className="button button-soft" onClick={onClose}>
-            Not now
+        <div className="consent-actions">
+          <button
+            type="button"
+            className="button button-lime button-large consent-start"
+            onClick={onConfirm}
+          >
+            <ShieldCheck size={19} weight="fill" aria-hidden="true" />
+            Start Safe Trip
           </button>
-          <button type="button" className="button button-lime" onClick={onConfirm}>
-            Start trip
-            <ArrowRight size={18} weight="bold" aria-hidden="true" />
+          <button type="button" className="consent-dismiss" onClick={onClose}>
+            Not right now
           </button>
         </div>
       </section>
@@ -206,14 +200,6 @@ function ActiveTripView({ trip, checkin, locationUpdates, simulation, sos, guard
         : simulation.offRoute || simulation.stopped
           ? "anomaly"
           : "normal";
-
-  const states = [
-    { id: "normal", label: "On route" },
-    { id: "anomaly", label: "Possible change" },
-    { id: "checkin", label: "Teen check-in" },
-    { id: "alerted", label: "Guardian alert" },
-  ];
-  const activeStateIndex = states.findIndex((item) => item.id === state);
 
   const directions = trip.mode === "transit" && trip.route.legs?.length
     ? trip.route.legs.map((leg) => {
@@ -270,44 +256,41 @@ function ActiveTripView({ trip, checkin, locationUpdates, simulation, sos, guard
 
   return (
     <div className="map-viewport">
-      {/* Map on the left, street-level corridor on the right. */}
-      <div className="map-base map-base-split">
-        <div className="map-pane">
-          <MapView
-            zones={trip.route.contextFactors || []}
-            places={places}
-            routes={[trip.route]}
-            activeRouteId={trip.route.routeId}
-            teenLocation={trip.location}
-            trail={trail}
-            follow
-            height="100%"
-          />
-          <div className="map-trip-chip">
-            <ShieldCheck size={17} weight="fill" aria-hidden="true" />
-            Planned route visible to your guardian
-          </div>
-        </div>
-
-        <div className="street-pane">
-          <StreetLevelView
-            points={trip.route.points}
-            position={trip.location}
-            incidents={trip.route.contextFactors || []}
-            title="Around you right now"
-            subtitle="Following your position · past reports flagged"
-            fill
-          />
-        </div>
+      {/* Map and street-level corridor, proportioned by a draggable divider. */}
+      <div className="map-base">
+        <MapSplit
+          map={
+            <>
+              <MapView
+                zones={trip.route.contextFactors || []}
+                places={places}
+                routes={[trip.route]}
+                activeRouteId={trip.route.routeId}
+                teenLocation={trip.location}
+                trail={trail}
+                follow
+                height="100%"
+              />
+              <div className="map-trip-chip">
+                <ShieldCheck size={17} weight="fill" aria-hidden="true" />
+                Route shared with your guardian
+              </div>
+            </>
+          }
+          street={
+            <StreetLevelView
+              points={trip.route.points}
+              position={trip.location}
+              incidents={trip.route.contextFactors || []}
+              title="Around you right now"
+              subtitle="Following your position · past reports flagged"
+              fill
+            />
+          }
+        />
       </div>
 
       <aside className="sidebar-float active-sidebar-float">
-        {/* Simulation mode indicator */}
-        <SimulationModeBanner
-          isRunning={simulation.running}
-          isStopped={simulation.stopped}
-        />
-
         <div className="active-trip-topline">
           <div className="live-indicator">
             <span />
@@ -353,19 +336,6 @@ function ActiveTripView({ trip, checkin, locationUpdates, simulation, sos, guard
           </div>
         </div>
 
-        <ol className="state-rail" aria-label="Guardian monitoring sequence">
-          {states.map((item, index) => (
-            <li
-              key={item.id}
-              className={index <= activeStateIndex ? "reached" : ""}
-              aria-current={index === activeStateIndex ? "step" : undefined}
-            >
-              <span>{index < activeStateIndex ? <Check size={12} weight="bold" /> : null}</span>
-              {item.label}
-            </li>
-          ))}
-        </ol>
-
         <div className="trip-metrics">
           <div>
             <span>Remaining</span>
@@ -383,7 +353,7 @@ function ActiveTripView({ trip, checkin, locationUpdates, simulation, sos, guard
 
         <div className="next-steps">
           <h3>Up next</h3>
-          {directions.slice(0, 3).map((direction, index) => {
+          {directions.slice(0, 2).map((direction, index) => {
             const Icon = direction.icon;
             return (
               <div className={index === 0 ? "direction active" : "direction"} key={`${direction.title}-${index}`}>
@@ -660,59 +630,63 @@ export default function TeenTripScreen() {
   return (
     <div className="map-viewport">
       {/* Map on the left, street-level preview of the selected route right. */}
-      <div className={`map-base${selectedRoute ? " map-base-split" : ""}`}>
-        <div className="map-pane">
-        <MapView
-          zones={incidents}
-          places={places}
-          routes={routes}
-          activeRouteId={selectedRoute?.routeId}
-          onRouteSelect={(route) => setSelectedRoute(route)}
-          height="100%"
-        />
-        {!plan && !isComparing && (
-          <div className="map-resting-message planner-map-message">
-            <Path size={24} weight="bold" aria-hidden="true" />
-            <div>
-              <strong>Ready for any point-to-point trip</strong>
-              <span>Enter place names, full addresses, or latitude/longitude pairs.</span>
-            </div>
-          </div>
-        )}
-        {selectedRoute && (
-          <div className="map-selection-summary">
-            <span className="map-selection-icon">
-              {travelMode === "transit" ? (
-                <Bus size={20} weight="fill" aria-hidden="true" />
-              ) : (
-                <Footprints size={20} weight="fill" aria-hidden="true" />
+      <div className="map-base">
+        <MapSplit
+          collapsed={!selectedRoute}
+          map={
+            <>
+              <MapView
+                zones={incidents}
+                places={places}
+                routes={routes}
+                activeRouteId={selectedRoute?.routeId}
+                onRouteSelect={(route) => setSelectedRoute(route)}
+                height="100%"
+              />
+              {!plan && !isComparing && (
+                <div className="map-resting-message planner-map-message">
+                  <Path size={24} weight="bold" aria-hidden="true" />
+                  <div>
+                    <strong>Ready for any point-to-point trip</strong>
+                    <span>Enter place names, addresses, or latitude/longitude pairs.</span>
+                  </div>
+                </div>
               )}
-            </span>
-            <div>
-              <span>{selectedRoute.recommended ? "Recommended" : "Selected route"}</span>
-              <strong>
-                {formatMinutes(selectedRoute.durationMinutes)} · {selectedRoute.label}
-              </strong>
-            </div>
-            <div className="map-condition-score">
-              <span>Conditions</span>
-              <strong>{routeCondition(selectedRoute)}</strong>
-            </div>
-          </div>
-        )}
-        </div>
-
-        {selectedRoute && (
-          <div className="street-pane">
-            <StreetLevelView
-              points={selectedRoute.points}
-              incidents={nearbyIncidents}
-              title="Preview the route"
-              subtitle="Street-level imagery · past reports flagged"
-              fill
-            />
-          </div>
-        )}
+              {selectedRoute && (
+                <div className="map-selection-summary">
+                  <span className="map-selection-icon">
+                    {travelMode === "transit" ? (
+                      <Bus size={20} weight="fill" aria-hidden="true" />
+                    ) : (
+                      <Footprints size={20} weight="fill" aria-hidden="true" />
+                    )}
+                  </span>
+                  <div>
+                    <span>{selectedRoute.recommended ? "Recommended" : "Selected route"}</span>
+                    <strong>
+                      {formatMinutes(selectedRoute.durationMinutes)} · {selectedRoute.label}
+                    </strong>
+                  </div>
+                  <div className="map-condition-score">
+                    <span>Conditions</span>
+                    <strong>{routeCondition(selectedRoute)}</strong>
+                  </div>
+                </div>
+              )}
+            </>
+          }
+          street={
+            selectedRoute ? (
+              <StreetLevelView
+                points={selectedRoute.points}
+                incidents={nearbyIncidents}
+                title="Preview the route"
+                subtitle="Street-level imagery · past reports flagged"
+                fill
+              />
+            ) : null
+          }
+        />
       </div>
 
       {/* Floating left sidebar */}
@@ -723,11 +697,6 @@ export default function TeenTripScreen() {
             // Could store in state if needed for future use
           }}
         />
-
-        <div className="planner-sidebar-head">
-          <p>Where are you going?</p>
-          <h2>Plan your trip</h2>
-        </div>
 
         <div className="route-form">
           <div className="route-field">
@@ -861,16 +830,10 @@ export default function TeenTripScreen() {
 
         {plan && routes.length > 0 && (
           <div className="route-results">
-            <div className="resolved-route-points" title={`${plan.origin.name} to ${plan.destination.name}`}>
-              <span>{shortPlaceName(plan.origin.name)}</span>
-              <ArrowRight size={13} weight="bold" aria-hidden="true" />
-              <span>{shortPlaceName(plan.destination.name)}</span>
-            </div>
             <div className="results-heading">
-              <div>
-                <span>{routes.length} reasonable options</span>
-                <strong>{travelMode === "walking" ? "Walking" : "Transit"} routes</strong>
-              </div>
+              <strong>
+                {routes.length} {travelMode === "walking" ? "walking" : "transit"} options
+              </strong>
               <span className="night-weight">
                 <Sparkle size={14} weight="fill" aria-hidden="true" />
                 {currentTime.getHours() >= 19 || currentTime.getHours() < 6
@@ -886,38 +849,12 @@ export default function TeenTripScreen() {
                   route={route}
                   selected={selectedRoute?.routeId === route.routeId}
                   onSelect={setSelectedRoute}
+                  danger={routeDangerSummary(route, incidents)}
                 />
               ))}
             </div>
 
-            {selectedRoute && (
-              <DangerBox
-                incident={closestIncident}
-                totalNearby={incidentSummary.total}
-                seriousNearby={incidentSummary.serious}
-              />
-            )}
-
-            <SafetyAlertsPanel
-              incidents={nearbyIncidents}
-              warnings={warnings}
-              lighting={lighting}
-              lightingVerdict={lightVerdict}
-              summary={incidentSummary}
-            />
-
             <ReportDangerButton location={selectedRoute?.points?.[0] ?? null} />
-
-            <SimulationControls compact />
-
-            <p className="sidebar-note" role="status">
-              <Info size={14} weight="fill" aria-hidden="true" />
-              Conditions are estimates from public data, not a guarantee of
-              safety.{" "}
-              {plan.metadata?.incidents?.live
-                ? `${plan.metadata.incidents.scoredCount ?? incidents.length} live Redmond records scored.`
-                : "Live Redmond feed unavailable."}
-            </p>
 
             <button
               type="button"

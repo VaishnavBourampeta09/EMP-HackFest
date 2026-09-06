@@ -5,26 +5,11 @@ import { useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useGSAP } from "@gsap/react";
 import gsap from "gsap";
-import { ArrowRight, Path, ShieldCheck } from "@phosphor-icons/react";
+import { ArrowRight, Path } from "@phosphor-icons/react";
 import BrandMark from "./components/BrandMark.jsx";
 import ProductStory from "./components/ProductStory.jsx";
 
 gsap.registerPlugin(useGSAP);
-
-function scrollToId(id) {
-  document.getElementById(id)?.scrollIntoView({
-    behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches
-      ? "auto"
-      : "smooth",
-    block: "start",
-  });
-}
-
-const heroStats = [
-  { value: "50–100 m", label: "Route segment resolution" },
-  { value: "6", label: "Public data sources scored" },
-  { value: "Trip-scoped", label: "Sharing starts and ends with the trip" },
-];
 
 export default function App() {
   const appRef = useRef(null);
@@ -33,30 +18,26 @@ export default function App() {
   useGSAP(
     () => {
       const media = gsap.matchMedia();
-      media.add(
-        { reduceMotion: "(prefers-reduced-motion: reduce)" },
-        (context) => {
-          if (context.conditions.reduceMotion) {
-            gsap.set([".hero-reveal", ".hero-panel"], { clearProps: "all" });
-            return;
-          }
-
-          gsap.from(".hero-reveal", {
-            y: 18,
-            autoAlpha: 0,
-            duration: 0.7,
-            stagger: 0.07,
-            ease: "power2.out",
-          });
-          gsap.from(".hero-panel", {
-            y: 24,
-            autoAlpha: 0,
-            duration: 0.8,
-            delay: 0.12,
-            ease: "power2.out",
-          });
-        },
-      );
+      media.add({ reduceMotion: "(prefers-reduced-motion: reduce)" }, (context) => {
+        if (context.conditions.reduceMotion) {
+          gsap.set([".hero-reveal", ".hero-panel"], { clearProps: "all" });
+          return;
+        }
+        gsap.from(".hero-reveal", {
+          y: 16,
+          autoAlpha: 0,
+          duration: 0.6,
+          stagger: 0.06,
+          ease: "power2.out",
+        });
+        gsap.from(".hero-panel", {
+          y: 20,
+          autoAlpha: 0,
+          duration: 0.7,
+          delay: 0.1,
+          ease: "power2.out",
+        });
+      });
       return () => media.revert();
     },
     { scope: appRef },
@@ -70,20 +51,8 @@ export default function App() {
             <BrandMark />
           </Link>
 
-          <div className="nav-links" aria-label="Page sections">
-            <button
-              type="button"
-              onClick={() => scrollToId("route-intelligence")}
-            >
-              How it works
-            </button>
-            <button type="button" onClick={() => scrollToId("guardian-story")}>
-              Guardian
-            </button>
-          </div>
-
           <Link className="nav-planner-link" href="/planner">
-            Open planner
+            Open Mapper
             <ArrowRight size={15} weight="bold" aria-hidden="true" />
           </Link>
         </nav>
@@ -93,21 +62,42 @@ export default function App() {
         <section className="hero" aria-labelledby="hero-title">
           <div className="hero-grid">
             <div className="hero-copy">
-              <h1 id="hero-title" className="hero-title">
-                Maps get you home. Sentinel makes sure you get home safely.
+              <p className="hero-eyebrow hero-reveal">
+                Safety-aware routing for Redmond
+              </p>
+
+              <h1 id="hero-title" className="hero-title hero-reveal">
+                Maps get you home.
+                <span>Sentinel makes sure you get home safely.</span>
               </h1>
+
+              <p className="hero-lede hero-reveal">
+                A walking and transit planner that scores every route on what is
+                actually mapped along it: recent police reports, street
+                lighting, and transit waits. It then recommends the safest
+                route that is still reasonable to take.
+              </p>
+
               <div className="hero-actions hero-reveal">
-                <Link
-                  className="button button-primary button-large"
-                  href="/planner"
-                >
+                <Link className="button button-primary button-large" href="/planner">
                   Plan a route
                   <Path size={18} weight="bold" aria-hidden="true" />
+                </Link>
+                <Link
+                  className="button button-outline button-large"
+                  href="/planner#parent"
+                >
+                  Guardian view
                 </Link>
               </div>
             </div>
 
-            <div className="hero-panel">
+            <figure className="hero-panel">
+              <figcaption className="hero-panel-head">
+                <span className="hero-panel-eyebrow">Tonight · 9:42 PM</span>
+                <span className="hero-panel-chip">Recommended</span>
+              </figcaption>
+
               <div className="hero-route">
                 <div className="hero-route-point">
                   <span className="hero-route-dot" aria-hidden="true" />
@@ -139,8 +129,8 @@ export default function App() {
                   <dd>92%</dd>
                 </div>
                 <div>
-                  <dt>Route score</dt>
-                  <dd>8.6</dd>
+                  <dt>Conditions</dt>
+                  <dd>86</dd>
                 </div>
               </dl>
 
@@ -148,23 +138,12 @@ export default function App() {
                 Chosen over a 17-minute route with two unlit blocks and a recent
                 late-night incident report.
               </p>
-            </div>
+            </figure>
           </div>
 
-          <ul className="hero-stats hero-reveal">
-            {heroStats.map(({ value, label }) => (
-              <li key={label}>
-                <strong>{value}</strong>
-                <span>{label}</span>
-              </li>
-            ))}
-          </ul>
         </section>
 
-        <ProductStory
-          onPlanClick={() => router.push("/planner")}
-          onGuardianClick={() => router.push("/planner#parent")}
-        />
+        <ProductStory onPlanClick={() => router.push("/planner")} />
       </main>
     </div>
   );

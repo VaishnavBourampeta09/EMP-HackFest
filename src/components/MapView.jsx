@@ -666,7 +666,7 @@ function MapLegend({ factors, routes, activeRouteId }) {
       )}
 
       <aside
-        className="map-legend leaflet-top leaflet-right"
+        className="map-legend leaflet-bottom leaflet-right"
         aria-label="Map legend and data sources"
         onDoubleClick={stopPropagation}
         onMouseDown={stopPropagation}
