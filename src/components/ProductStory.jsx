@@ -20,6 +20,7 @@ import {
   WarningCircle,
 } from "@phosphor-icons/react";
 import BrandMark from "./BrandMark.jsx";
+import LiveCrimeSection from "./LiveCrimeSection.jsx";
 
 gsap.registerPlugin(useGSAP, ScrollTrigger);
 
@@ -45,7 +46,7 @@ const routeFactors = [
     id: "lighting",
     title: "Street lighting",
     detail:
-      "Escort looks for gaps between mapped street lights instead of assigning one score to a whole neighborhood. Lighting carries more weight when the trip happens after dark.",
+      "Sentinel looks for gaps between mapped street lights instead of assigning one score to a whole neighborhood. Lighting carries more weight when the trip happens after dark.",
     signal: "Coverage gaps + time of day",
     Icon: LightbulbFilament,
   },
@@ -147,7 +148,7 @@ export default function ProductStory({ onPlanClick, onGuardianClick }) {
       <div
         className="story-marquee"
         role="region"
-        aria-label="Data and routing sources used by Escort"
+        aria-label="Data and routing sources used by Sentinel"
       >
         <div className="story-marquee-track" data-marquee-track>
           <DataSourceGroup />
@@ -167,7 +168,7 @@ export default function ProductStory({ onPlanClick, onGuardianClick }) {
           </h2>
           <p className="story-chapter-lede">
             Established directions engines generate the realistic walking and
-            transit options. Escort scores those candidates on the conditions
+            transit options. Sentinel scores those candidates on the conditions
             along the path, then balances safety against travel time.
           </p>
         </header>
@@ -177,7 +178,7 @@ export default function ProductStory({ onPlanClick, onGuardianClick }) {
             <ShieldCheck aria-hidden="true" size={26} weight="regular" />
             <h3>Safest reasonable, by design</h3>
             <p>
-              Escort will not send someone on an impractical detour for a
+              Sentinel will not send someone on an impractical detour for a
               marginal gain. The weighting shifts with the time of day, and the
               tradeoff stays visible on every recommendation.
             </p>
@@ -245,51 +246,75 @@ export default function ProductStory({ onPlanClick, onGuardianClick }) {
         </div>
       </section>
 
+      <LiveCrimeSection onPlanClick={onPlanClick} />
+
       <section
         id="guardian-story"
         className="story-chapter story-guardian"
         aria-labelledby="guardian-title"
       >
-        <header className="story-chapter-heading">
-          <p className="story-eyebrow">A response, not an alarm</p>
-          <h2 id="guardian-title">Guardian understands the journey.</h2>
-          <p className="story-chapter-lede">
-            Passive sharing shows a dot. Escort compares that dot against the
-            route, the ETA, the expected stops, and how long a change has lasted
-            before deciding what happens next.
-          </p>
-        </header>
+        <div className="ladder-layout">
+          <header className="ladder-intro">
+            <p className="story-eyebrow">Escalation, not surveillance</p>
+            <h2 id="guardian-title">
+              An alarm goes off.
+              <span>Sentinel escalates.</span>
+            </h2>
+            <p className="story-chapter-lede">
+              Passive sharing shows a dot on a map and leaves you to interpret
+              it. Sentinel holds four states, and it has to earn its way up each
+              one — comparing the dot against the route, the ETA, the expected
+              stops, and how long the change has lasted.
+            </p>
+            <p className="ladder-note">
+              One noisy GPS reading never reaches a guardian.
+            </p>
+          </header>
 
-        <ol className="story-sequence">
-          {guardianStates.map(({ title, description, Icon }, index) => (
-            <li className="story-step" key={title}>
-              <span className="story-step-index" aria-hidden="true">
-                {String(index + 1).padStart(2, "0")}
-              </span>
-              <div className="story-step-body">
-                <div className="story-step-head">
-                  <Icon aria-hidden="true" size={22} weight="regular" />
-                  <h3>{title}</h3>
+          <ol className="ladder" aria-label="How Sentinel escalates during a trip">
+            {guardianStates.map(({ title, description, Icon }, index) => (
+              <li className="ladder-rung" key={title} data-level={index}>
+                <div className="ladder-rail" aria-hidden="true">
+                  <span className="ladder-node">{index + 1}</span>
                 </div>
-                <p>{description}</p>
+                <div className="ladder-body">
+                  <div className="ladder-heading">
+                    <Icon aria-hidden="true" size={19} weight="fill" />
+                    <h3>{title}</h3>
+                    <span className="ladder-meter" aria-hidden="true">
+                      {[0, 1, 2, 3].map((tick) => (
+                        <i key={tick} className={tick <= index ? "on" : ""} />
+                      ))}
+                    </span>
+                  </div>
+                  <p>{description}</p>
+                </div>
+              </li>
+            ))}
+
+            <li className="ladder-rung ladder-fork" data-level="3">
+              <div className="ladder-rail" aria-hidden="true">
+                <span className="ladder-node ladder-node-fork">4</span>
+              </div>
+              <div className="ladder-body">
+                <p className="ladder-fork-label">The check-in decides which way this ends</p>
+                <div className="ladder-fork-pair">
+                  {guardianOutcomes.map(({ title, description, Icon }) => (
+                    <article
+                      className={`ladder-outcome ladder-outcome-${title === "Resolved" ? "ok" : "alert"}`}
+                      key={title}
+                    >
+                      <div className="ladder-heading">
+                        <Icon aria-hidden="true" size={19} weight="fill" />
+                        <h3>{title}</h3>
+                      </div>
+                      <p>{description}</p>
+                    </article>
+                  ))}
+                </div>
               </div>
             </li>
-          ))}
-        </ol>
-
-        <div className="story-outcomes" role="group" aria-label="The check-in has two possible outcomes">
-          <p className="story-outcomes-label">Then one of two things happens</p>
-          <div className="story-outcome-pair">
-            {guardianOutcomes.map(({ title, description, Icon }) => (
-              <article className="story-outcome" key={title}>
-                <div className="story-step-head">
-                  <Icon aria-hidden="true" size={22} weight="regular" />
-                  <h3>{title}</h3>
-                </div>
-                <p>{description}</p>
-              </article>
-            ))}
-          </div>
+          </ol>
         </div>
       </section>
 
@@ -297,7 +322,7 @@ export default function ProductStory({ onPlanClick, onGuardianClick }) {
         <div className="story-closing-copy">
           <h2 id="story-closing-title">Choose the route. Keep the context.</h2>
           <p>
-            Plan with familiar map controls, then let Escort quietly watch
+            Plan with familiar map controls, then let Sentinel quietly watch
             whether the trip continues as expected.
           </p>
         </div>
@@ -322,11 +347,11 @@ export default function ProductStory({ onPlanClick, onGuardianClick }) {
 
       <footer className="story-footer">
         <div className="story-footer-inner">
-          <a className="story-footer-brand" href="#top" aria-label="Escort, back to top">
+          <a className="story-footer-brand" href="#top" aria-label="Sentinel, back to top">
             <BrandMark variant="glyph" />
-            <span>Escort</span>
+            <span>Sentinel</span>
           </a>
-          <p>Maps get you home. Escort makes sure you get home safely.</p>
+          <p>Maps get you home. Sentinel makes sure you get home safely.</p>
           <div className="story-footer-tech" role="group" aria-label="Built with">
             <span>MapLibre</span>
             <span>OpenTripPlanner</span>

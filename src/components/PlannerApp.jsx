@@ -161,7 +161,7 @@ export default function PlannerApp() {
       {/* Floating glassmorphic navigation header */}
       <header className="planner-nav-float">
         <nav className="planner-nav" aria-label="Planner navigation">
-          <Link className="brand" href="/" aria-label="Escort home">
+          <Link className="brand" href="/" aria-label="Sentinel home">
             <BrandMark />
           </Link>
 

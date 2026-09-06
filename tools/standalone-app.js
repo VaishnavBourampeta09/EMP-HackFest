@@ -135,7 +135,7 @@ function destinationScreen() {
   return `
     <div class="screen">
       <h1>Where are you going?</h1>
-      <p class="muted">Escort plans the trip, watches it, and only wakes your parent if something changes.</p>
+      <p class="muted">Sentinel plans the trip, watches it, and only wakes your parent if something changes.</p>
       <input class="input" value="Home" readonly />
       <div class="quick-picks">
         ${picks.map((place) => `<button type="button" class="chip" data-action="pick">${escapeHtml(place.name)}</button>`).join('')}
@@ -250,7 +250,7 @@ function parentScreen() {
       }
       <section>
         <h3>Alerts</h3>
-        ${state.alerts.length === 0 ? '<p class="muted">No alerts. Escort only escalates when a check-in fails.</p>' : ''}
+        ${state.alerts.length === 0 ? '<p class="muted">No alerts. Sentinel only escalates when a check-in fails.</p>' : ''}
         ${state.alerts.map((alert) => alertMarkup(alert)).join('')}
       </section>
       <section>
@@ -309,7 +309,7 @@ function render() {
       <header class="app-bar">
         <div class="brand">
           <span class="brand-mark">GR</span>
-          <div><strong>Escort</strong><span class="tagline">From passive tracking to proactive protection</span></div>
+          <div><strong>Sentinel</strong><span class="tagline">From passive tracking to proactive protection</span></div>
         </div>
         <div class="mode-toggle">
           <button type="button" class="${state.mode === 'teen' ? 'active' : ''}" data-action="mode" data-mode="teen">Teen</button>

@@ -2,8 +2,8 @@ import { useEffect, useState } from "react";
 import demoUsers from "./data/demo_users.json";
 import { DEFAULT_SETTINGS } from "./logic/tripMonitoring.js";
 
-const STORAGE_KEY = "guardian-route-state-v3";
-const CHANNEL_NAME = "guardian-route";
+const STORAGE_KEY = "sentinel-state-v4";
+const CHANNEL_NAME = "sentinel";
 
 const initialState = {
   users: demoUsers,
@@ -12,6 +12,9 @@ const initialState = {
   alerts: [],
   locationUpdates: [],
   settings: { ...DEFAULT_SETTINGS },
+  // A standing help request. Separate from `alerts` so the teen keeps their own
+  // visible state even after the guardian acknowledges the alert.
+  sos: null,
   simulation: {
     running: false,
     index: 0,

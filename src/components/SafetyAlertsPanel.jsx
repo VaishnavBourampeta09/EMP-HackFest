@@ -1,47 +1,151 @@
 "use client";
 
-import { WarningCircle, Warning, MapPin, Clock } from "@phosphor-icons/react";
+import {
+  Clock,
+  Info,
+  Lightbulb,
+  MapPin,
+  ShieldCheck,
+  Warning,
+  WarningCircle,
+} from "@phosphor-icons/react";
 
-export default function SafetyAlertsPanel({ incidents = [], location, destination }) {
-  if (incidents.length === 0) {
-    return null;
-  }
+const CATEGORY_ICON = {
+  violent_crime: Warning,
+  collision: WarningCircle,
+};
 
-  const nearbyIncidents = incidents.slice(0, 2);
+function ageLabel(days) {
+  if (!Number.isFinite(days)) return null;
+  if (days <= 0) return "Today";
+  if (days === 1) return "Yesterday";
+  if (days < 7) return `${days}d ago`;
+  if (days < 60) return `${Math.round(days / 7)}w ago`;
+  return `${Math.round(days / 30)}mo ago`;
+}
+
+const WARNING_ICON = {
+  high: Warning,
+  medium: WarningCircle,
+  info: Info,
+  clear: ShieldCheck,
+};
+
+/**
+ * Route context for the selected route: the reports that are actually near it,
+ * the measured lighting along it, and the plain-language warnings derived from
+ * both. Every value here comes from the /api/plan and /api/lighting responses.
+ */
+export default function SafetyAlertsPanel({
+  incidents = [],
+  warnings = [],
+  lighting = null,
+  lightingVerdict = null,
+  summary = null,
+}) {
+  // The danger box already carries the single most serious report, so this list
+  // answers a different question: what is physically closest to the path.
+  const topIncidents = [...incidents]
+    .sort((a, b) => (a.distanceMeters ?? 0) - (b.distanceMeters ?? 0))
+    .slice(0, 4);
+  const hasAnything =
+    topIncidents.length > 0 || warnings.length > 0 || Boolean(lighting?.available);
+  if (!hasAnything) return null;
 
   return (
-    <aside className="safety-alerts-panel" aria-label="Route safety information">
+    <aside className="safety-alerts-panel" aria-label="Route context">
       <div className="safety-alerts-header">
-        <WarningCircle size={18} weight="fill" aria-hidden="true" />
+        <WarningCircle size={17} weight="fill" aria-hidden="true" />
         <strong>Route context</strong>
+        {summary?.total > 0 && (
+          <span className="safety-alerts-count">
+            {summary.total} nearby · {summary.lastWeek} this week
+          </span>
+        )}
       </div>
 
-      <div className="incidents-list">
-        {nearbyIncidents.map((incident, index) => (
-          <div key={`${incident.type}-${index}`} className="incident-item">
-            <div className={`incident-icon incident-${incident.type}`} aria-hidden="true">
-              {incident.type === "violent_crime" ? (
-                <Warning size={14} weight="fill" />
-              ) : (
-                <MapPin size={14} weight="fill" />
-              )}
+      {lighting?.available && (
+        <div className={`lighting-stat lighting-${lightingVerdict?.level ?? "mixed"}`}>
+          <Lightbulb size={16} weight="fill" aria-hidden="true" />
+          <div className="lighting-stat-body">
+            <div className="lighting-stat-top">
+              <strong>{lightingVerdict?.label ?? "Lighting"}</strong>
+              <span>{lighting.coveragePercent}% lit</span>
             </div>
-            <div className="incident-content">
-              <span className="incident-type">{incident.label}</span>
-              {incident.daysAgo !== null && (
-                <span className="incident-age">
-                  <Clock size={11} weight="fill" aria-hidden="true" />
-                  {incident.daysAgo === 0 ? "Today" : `${incident.daysAgo}d ago`}
-                </span>
-              )}
+            <div
+              className="lighting-bar"
+              role="img"
+              aria-label={`${lighting.coveragePercent} percent of this route is near a mapped street lamp`}
+            >
+              <i style={{ width: `${lighting.coveragePercent}%` }} />
             </div>
+            <span className="lighting-stat-detail">
+              {lighting.lampsNearby} mapped street lamps ·{" "}
+              {lighting.longestGapMeters} m longest unlit stretch
+            </span>
           </div>
-        ))}
-      </div>
+        </div>
+      )}
+
+      {warnings.length > 0 && (
+        <ul className="route-warnings">
+          {warnings.map((warning) => {
+            const Icon = WARNING_ICON[warning.level] ?? Info;
+            return (
+              <li key={warning.id} className={`route-warning route-warning-${warning.level}`}>
+                <Icon size={15} weight="fill" aria-hidden="true" />
+                <div>
+                  <strong>{warning.title}</strong>
+                  <span>{warning.detail}</span>
+                </div>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+
+      {topIncidents.length > 0 && (
+        <>
+          <p className="safety-alerts-subhead">Reports closest to this route</p>
+          <ul className="incidents-list">
+            {topIncidents.map((incident) => {
+              const Icon = CATEGORY_ICON[incident.category] ?? MapPin;
+              const age = ageLabel(incident.recencyDays);
+              return (
+                <li key={incident.id} className="incident-item">
+                  <span
+                    className={`incident-icon incident-${incident.category}`}
+                    aria-hidden="true"
+                  >
+                    <Icon size={13} weight="fill" />
+                  </span>
+                  <div className="incident-content">
+                    <span className="incident-type">
+                      {incident.categoryLabel || incident.description || "Reported incident"}
+                    </span>
+                    <span className="incident-where">
+                      {incident.generalizedLocation || "Near this route"}
+                      {Number.isFinite(incident.distanceMeters)
+                        ? ` · ${incident.distanceMeters} m away`
+                        : ""}
+                    </span>
+                  </div>
+                  {age && (
+                    <span className="incident-age">
+                      <Clock size={11} weight="fill" aria-hidden="true" />
+                      {age}
+                    </span>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
+        </>
+      )}
 
       <p className="safety-disclaimer">
-        These are objective environmental factors. Personal safety depends on awareness and
-        preparation.
+        Reports are objective environmental context from the City of Redmond feed
+        and OpenStreetMap lighting, not a prediction about any person or place.
       </p>
     </aside>
   );

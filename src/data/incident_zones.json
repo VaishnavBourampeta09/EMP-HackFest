@@ -195,7 +195,7 @@
     "radiusMeters": 220,
     "severity": 2,
     "recencyDays": 3,
-    "source": "Escort users (demo)"
+    "source": "Sentinel users (demo)"
   },
   {
     "id": "zone_019",
@@ -217,7 +217,7 @@
     "radiusMeters": 260,
     "severity": 2,
     "recencyDays": 16,
-    "source": "Escort users (demo)"
+    "source": "Sentinel users (demo)"
   },
   {
     "id": "zone_021",

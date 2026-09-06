@@ -26,12 +26,29 @@ import SafetyAlertsPanel from "./SafetyAlertsPanel.jsx";
 import RouteComparisonInfo from "./RouteComparisonInfo.jsx";
 import LocationPermissionPrompt from "./LocationPermissionPrompt.jsx";
 import SimulationModeBanner from "./SimulationModeBanner.jsx";
+import DangerBox from "./DangerBox.jsx";
+import StreetLevelView from "./StreetLevelView.jsx";
+import SosSheet from "./SosSheet.jsx";
+import {
+  incidentsNearRoute,
+  isAfterDark,
+  routeWarnings,
+  summarizeIncidents,
+  nearestSafePlaces,
+  shortPlaceName,
+} from "../logic/safetyInsights.js";
+import {
+  lightingForRoute,
+  lightingVerdict,
+  routeBbox,
+} from "../logic/lighting.js";
 import {
   startTrip,
   endTrip,
   expireCheckin,
   respondCheckin,
   sendSos,
+  clearSos,
   places,
 } from "../actions.js";
 import demoRoutes from "../data/demo_routes.json";
@@ -126,7 +143,7 @@ function StartTripSheet({ route, guardianName, onClose, onConfirm }) {
         <h2 id="consent-title">Start this Safe Trip?</h2>
         <p className="sheet-reason">
           Your location is shared with {guardianName} only while this trip is
-          active. Escort looks for sustained changes, not single noisy
+          active. Sentinel looks for sustained changes, not single noisy
           readings.
         </p>
 
@@ -170,7 +187,7 @@ function StartTripSheet({ route, guardianName, onClose, onConfirm }) {
   );
 }
 
-function ActiveTripView({ trip, checkin, locationUpdates, simulation }) {
+function ActiveTripView({ trip, checkin, locationUpdates, simulation, sos, guardian }) {
   const progress = Math.round(routeProgress(trip.location, trip.route.points) * 100);
   const arrival = new Date(Date.now() + trip.etaMinutes * 60000);
   const trail = locationUpdates
@@ -218,7 +235,7 @@ function ActiveTripView({ trip, checkin, locationUpdates, simulation }) {
         }
         return {
           icon: Footprints,
-          title: `Walk to ${leg.to || trip.destination.name}`,
+          title: `Walk to ${shortPlaceName(leg.to || trip.destination.name)}`,
           detail: `${leg.durationMinutes ?? 0} min walking`,
         };
       })
@@ -243,7 +260,7 @@ function ActiveTripView({ trip, checkin, locationUpdates, simulation }) {
         },
         {
           icon: MapPin,
-          title: `Arrive at ${trip.destination.name}`,
+          title: `Arrive at ${shortPlaceName(trip.destination.name)}`,
           detail: `${trip.etaMinutes} min remaining`,
         },
       ];
@@ -283,9 +300,17 @@ function ActiveTripView({ trip, checkin, locationUpdates, simulation }) {
           <span>{progress}% complete</span>
         </div>
 
+        <StreetLevelView
+          points={trip.route.points}
+          position={trip.location}
+          title="Around you right now"
+          subtitle="Street-level imagery nearest your current position"
+          height={200}
+        />
+
         <div className="active-destination">
           <span>Heading to</span>
-          <h2>{trip.destination.name}</h2>
+          <h2 title={trip.destination.name}>{shortPlaceName(trip.destination.name)}</h2>
           <p>
             Arrive around{" "}
             {arrival.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}
@@ -416,12 +441,19 @@ function ActiveTripView({ trip, checkin, locationUpdates, simulation }) {
         onRespond={respondCheckin}
         onExpire={expireCheckin}
       />
+
+      <SosSheet
+        sos={sos}
+        guardian={guardian}
+        safePlaces={nearestSafePlaces(places, trip.location)}
+        onClear={clearSos}
+      />
     </div>
   );
 }
 
 export default function TeenTripScreen() {
-  const { trip, checkin, locationUpdates, simulation, users } = useStore();
+  const { trip, checkin, locationUpdates, simulation, users, sos } = useStore();
   const [originName, setOriginName] = useState("Redmond Library, Redmond, WA");
   const [destinationName, setDestinationName] = useState(
     "Downtown Redmond Station, Redmond, WA",
@@ -446,6 +478,75 @@ export default function TeenTripScreen() {
 
   const routes = plan?.routes || [];
   const incidents = plan?.incidents || [];
+  const afterDark = isAfterDark(currentTime);
+
+  // Real street lamp positions for the selected route's bounding box.
+  const [lamps, setLamps] = useState([]);
+  const lightingKey = useMemo(() => {
+    const box = routeBbox(selectedRoute?.points ?? []);
+    return box ? box.map((n) => n.toFixed(3)).join(",") : null;
+  }, [selectedRoute]);
+
+  useEffect(() => {
+    if (!lightingKey) {
+      setLamps([]);
+      return undefined;
+    }
+    const controller = new AbortController();
+    fetch(`/api/lighting?bbox=${encodeURIComponent(lightingKey)}`, {
+      signal: controller.signal,
+    })
+      .then((response) => response.json())
+      .then((payload) => {
+        if (controller.signal.aborted) return;
+        setLamps(payload?.ok ? payload.lamps || [] : []);
+      })
+      .catch((error) => {
+        if (error.name !== "AbortError") setLamps([]);
+      });
+    return () => controller.abort();
+  }, [lightingKey]);
+
+  const lighting = useMemo(
+    () => lightingForRoute(selectedRoute?.points ?? [], lamps),
+    [selectedRoute, lamps],
+  );
+  const lightVerdict = useMemo(
+    () => lightingVerdict(lighting, afterDark),
+    [lighting, afterDark],
+  );
+
+  // Counts must describe every report within the corridor, not just the
+  // handful the panel lists — otherwise "12 of them serious" is only ever
+  // reporting the display cap back to the user.
+  const allNearbyIncidents = useMemo(
+    () =>
+      incidentsNearRoute(incidents, selectedRoute, {
+        withinMeters: 400,
+        limit: Number.MAX_SAFE_INTEGER,
+      }),
+    [incidents, selectedRoute],
+  );
+  const nearbyIncidents = useMemo(
+    () => allNearbyIncidents.slice(0, 12),
+    [allNearbyIncidents],
+  );
+  const incidentSummary = useMemo(
+    () => summarizeIncidents(allNearbyIncidents),
+    [allNearbyIncidents],
+  );
+  const warnings = useMemo(
+    () =>
+      selectedRoute
+        ? routeWarnings(selectedRoute, nearbyIncidents, {
+            afterDark,
+            alternatives: routes,
+          })
+        : [],
+    [selectedRoute, nearbyIncidents, afterDark, routes],
+  );
+  // The headline hazard: most severe, then most recent, then closest.
+  const closestIncident = nearbyIncidents[0] ?? null;
 
   const compareRoutes = useCallback(async () => {
     const origin = originName.trim();
@@ -474,7 +575,7 @@ export default function TeenTripScreen() {
       const payload = await response.json();
       if (!response.ok || !payload.ok) {
         throw new Error(
-          payload?.error?.message || "Escort could not plan this trip.",
+          payload?.error?.message || "Sentinel could not plan this trip.",
         );
       }
 
@@ -561,6 +662,8 @@ export default function TeenTripScreen() {
         checkin={checkin}
         locationUpdates={locationUpdates}
         simulation={simulation}
+        sos={sos}
+        guardian={users?.parent}
       />
     );
   }
@@ -756,9 +859,9 @@ export default function TeenTripScreen() {
         {plan && routes.length > 0 && (
           <div className="route-results">
             <div className="resolved-route-points" title={`${plan.origin.name} to ${plan.destination.name}`}>
-              <span>{plan.origin.name}</span>
+              <span>{shortPlaceName(plan.origin.name)}</span>
               <ArrowRight size={13} weight="bold" aria-hidden="true" />
-              <span>{plan.destination.name}</span>
+              <span>{shortPlaceName(plan.destination.name)}</span>
             </div>
             <div className="results-heading">
               <div>
@@ -784,15 +887,31 @@ export default function TeenTripScreen() {
               ))}
             </div>
 
+            {selectedRoute && (
+              <DangerBox
+                incident={closestIncident}
+                totalNearby={incidentSummary.total}
+                seriousNearby={incidentSummary.serious}
+              />
+            )}
+
             {routes.length > 1 && (
               <RouteComparisonInfo routes={routes} />
             )}
 
-            {incidents.length > 0 && (
-              <SafetyAlertsPanel
-                incidents={incidents}
-                location={plan.origin}
-                destination={plan.destination}
+            <SafetyAlertsPanel
+              incidents={nearbyIncidents}
+              warnings={warnings}
+              lighting={lighting}
+              lightingVerdict={lightVerdict}
+              summary={incidentSummary}
+            />
+
+            {selectedRoute && (
+              <StreetLevelView
+                points={selectedRoute.points}
+                title="Preview the walk"
+                subtitle="Street-level imagery along the route you selected"
               />
             )}
 

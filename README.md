@@ -1,8 +1,8 @@
-# Escort
+# Sentinel
 
-**Maps get you home. Escort makes sure you get home safely.**
+**Maps get you home. Sentinel makes sure you get home safely.**
 
-Parents today can see where their teen is, but they usually find out after something is wrong. Escort proactively chooses safer routes, monitors the trip, checks in with the teen when risk changes, and alerts the parent only when needed.
+Parents today can see where their teen is, but they usually find out after something is wrong. Sentinel proactively chooses safer routes, monitors the trip, checks in with the teen when risk changes, and alerts the parent only when needed.
 
 This is a web app (Next.js + React + Leaflet/OpenStreetMap) built for a hackathon MVP. It is **not** a crime prediction system — it is a route planner that uses recent incident zones and traffic collision zones to recommend safer paths and trigger parent check-ins.
 

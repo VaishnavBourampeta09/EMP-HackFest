@@ -37,7 +37,7 @@ const ITINERARY_FIELDS = `
 `;
 
 const PLAN_CONNECTION_QUERY = `
-  query EscortPlanConnection(
+  query SentinelPlanConnection(
     $origin: PlanLabeledLocationInput!
     $destination: PlanLabeledLocationInput!
     $dateTime: PlanDateTimeInput
@@ -57,7 +57,7 @@ const PLAN_CONNECTION_QUERY = `
 `;
 
 const LEGACY_PLAN_QUERY = `
-  query EscortLegacyPlan(
+  query SentinelLegacyPlan(
     $from: InputCoordinates!
     $to: InputCoordinates!
     $date: String
@@ -271,7 +271,7 @@ async function requestPlanConnection(origin, destination, departureTime, maxCand
       dateTime: { earliestDeparture: departureTime },
       first: maxCandidates
     },
-    'EscortPlanConnection'
+    'SentinelPlanConnection'
   );
   const errors = data?.planConnection?.routingErrors || [];
   const itineraries = (data?.planConnection?.edges || []).map((edge) => edge.node).filter(Boolean);
@@ -289,7 +289,7 @@ async function requestLegacyPlan(origin, destination, departureTime, maxCandidat
       time: date.toISOString().slice(11, 16),
       numItineraries: maxCandidates
     },
-    'EscortLegacyPlan'
+    'SentinelLegacyPlan'
   );
   return {
     errors: data?.plan?.routingErrors || data?.plan?.messageStrings || [],

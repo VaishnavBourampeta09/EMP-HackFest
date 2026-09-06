@@ -647,7 +647,7 @@ function MapLegend({ factors, routes, activeRouteId }) {
       )}
 
       <aside
-        className="map-legend leaflet-bottom leaflet-left"
+        className="map-legend leaflet-top leaflet-right"
         aria-label="Map legend and data sources"
         onDoubleClick={stopPropagation}
         onMouseDown={stopPropagation}
@@ -780,7 +780,7 @@ export default function MapView({
       className="map-shell guardian-map-shell"
       style={{ height }}
       role="region"
-      aria-label="Interactive Escort trip map"
+      aria-label="Interactive Sentinel trip map"
     >
       <MapContainer
         center={fallbackCenter}

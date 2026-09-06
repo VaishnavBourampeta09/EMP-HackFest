@@ -37,10 +37,10 @@ function writeCache(key, value) {
 }
 
 function userAgent() {
-  // GUARDIANROUTE_CONTACT_EMAIL is the pre-rename name, still honoured.
+  // SENTINEL_CONTACT_EMAIL is the pre-rename name, still honoured.
   const contact =
-    process.env.ESCORT_CONTACT_EMAIL || process.env.GUARDIANROUTE_CONTACT_EMAIL;
-  return contact ? `Escort/0.1 (${contact})` : 'Escort/0.1 (hackathon prototype)';
+    process.env.SENTINEL_CONTACT_EMAIL || process.env.SENTINEL_CONTACT_EMAIL;
+  return contact ? `Sentinel/0.1 (${contact})` : 'Sentinel/0.1 (hackathon prototype)';
 }
 
 async function waitForNominatimSlot() {
