@@ -51,7 +51,7 @@ export default function LocationPermissionPrompt({ onPermissionRequested }) {
         <MapPin size={20} weight="fill" aria-hidden="true" />
         <div className="prompt-text">
           <strong>Use your real location?</strong>
-          <p>Escort can track your actual journey when you start a trip, or you can use Simulation Mode for testing without traveling.</p>
+          <p>Sentinel can track your actual journey when you start a trip, or you can use Simulation Mode for testing without traveling.</p>
         </div>
       </div>
       <div className="prompt-actions">

@@ -307,11 +307,49 @@ export function expireCheckin() {
   });
 }
 
-export function sendSos() {
-  raiseAlert({
+export function sendSos(reason = 'Teen pressed the help button.') {
+  const { trip, sos } = getState();
+  if (sos && sos.status === 'active') return sos;
+
+  const alert = raiseAlert({
     type: 'sos',
     severity: 'high',
-    message: 'Teen pressed the help button.'
+    message: typeof reason === 'string' ? reason : 'Teen pressed the help button.'
+  });
+
+  const record = {
+    id: alert.id,
+    status: 'active',
+    reason: alert.message,
+    raisedAt: alert.createdAt,
+    clearedAt: null,
+    location: trip ? trip.location : null,
+    etaMinutes: trip ? trip.etaMinutes : null,
+    destination: trip?.destination?.name ?? null
+  };
+  setState({ sos: record });
+  return record;
+}
+
+/** Stand down a help request the teen raised (false alarm, or resolved). */
+export function clearSos(note = 'Teen marked themselves safe.') {
+  const { sos, alerts, trip } = getState();
+  if (!sos || sos.status !== 'active') return;
+
+  setState({
+    sos: { ...sos, status: 'cleared', clearedAt: Date.now(), note },
+    alerts: alerts.map((entry) =>
+      entry.id === sos.id
+        ? { ...entry, status: 'resolved', resolutionNote: note }
+        : entry
+    ),
+    trip: trip
+      ? {
+          ...trip,
+          status: trip.status === 'alert' ? 'active' : trip.status,
+          monitoringState: 'RESOLVED'
+        }
+      : trip
   });
 }
 

@@ -3,6 +3,7 @@ import { clampCandidateCount, normalizeIsoDate } from './geo.js';
 import { resolvePlace } from './geocode.js';
 import { getMapboxWalkingRoutes } from './mapbox.js';
 import { getOtpTransitRoutes } from './otp.js';
+import { getTransitousRoutes } from './transitous.js';
 import { getValhallaRoutes } from './valhalla.js';
 
 function publicFallbackAllowed(value) {
@@ -37,12 +38,12 @@ export function routingCapabilities() {
       publicFallback
     },
     transit: {
-      configured: Boolean(process.env.OTP_URL),
-      preferredProvider: process.env.OTP_URL ? 'opentripplanner' : 'valhalla',
+      configured: true,
+      preferredProvider: process.env.OTP_URL ? 'opentripplanner' : 'transitous',
       publicFallback,
       note: process.env.OTP_URL
         ? 'OTP GTFS GraphQL is enabled.'
-        : 'Configure OTP_URL for dependable regional transit coverage.'
+        : 'Live schedules via Transitous (King County Metro + Sound Transit GTFS).'
     }
   };
 }
@@ -109,17 +110,30 @@ async function transitRoutes(origin, destination, options) {
     );
   }
 
+  // Transitous is a free public MOTIS service carrying King County Metro and
+  // Sound Transit GTFS, so transit works online without any local server.
   try {
     return {
-      routes: await getValhallaRoutes(origin, destination, options),
+      routes: await getTransitousRoutes(origin, destination, options),
       attempts,
       fallbackUsed: Boolean(process.env.OTP_URL)
     };
   } catch (error) {
     attempts.push(providerFailure(error));
+  }
+
+  // Last resort: Valhalla multimodal, which only sometimes has transit tiles.
+  try {
+    return {
+      routes: await getValhallaRoutes(origin, destination, options),
+      attempts,
+      fallbackUsed: true
+    };
+  } catch (error) {
+    attempts.push(providerFailure(error));
     throw new RoutingProviderError(
       'Transit routing',
-      'No transit itinerary is available. Configure OTP_URL with local GTFS data for dependable coverage.',
+      'No scheduled transit itinerary was found for this trip and time. Try a different departure time, or a walking route.',
       { cause: error, details: { attempts } }
     );
   }
@@ -176,7 +190,8 @@ export async function planPointToPoint({
             origin.attribution,
             destination.attribution,
             result.routes[0]?.provider === 'mapbox' ? '© Mapbox and its data suppliers' : null,
-            result.routes[0]?.provider === 'valhalla' ? 'Routing © Valhalla; data © OpenStreetMap contributors' : null
+            result.routes[0]?.provider === 'valhalla' ? 'Routing © Valhalla; data © OpenStreetMap contributors' : null,
+            result.routes[0]?.provider === 'transitous' ? 'Transit © Transitous / MOTIS; schedules © King County Metro and Sound Transit' : null
           ].filter(Boolean)
         )
       )

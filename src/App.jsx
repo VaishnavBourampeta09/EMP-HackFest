@@ -66,7 +66,7 @@ export default function App() {
     <div ref={appRef} className="site-shell" id="top">
       <header className="nav-wrap">
         <nav className="site-nav" aria-label="Primary navigation">
-          <Link className="brand" href="/" aria-label="Escort home">
+          <Link className="brand" href="/" aria-label="Sentinel home">
             <BrandMark />
           </Link>
 
@@ -94,7 +94,7 @@ export default function App() {
           <div className="hero-grid">
             <div className="hero-copy">
               <h1 id="hero-title" className="hero-title">
-                Maps get you home. Escort makes sure you get home safely.
+                Maps get you home. Sentinel makes sure you get home safely.
               </h1>
               <div className="hero-actions hero-reveal">
                 <Link

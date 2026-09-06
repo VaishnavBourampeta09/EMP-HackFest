@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useMemo, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import {
   Bell,
@@ -15,6 +16,13 @@ import {
 } from "@phosphor-icons/react";
 import AlertCard from "./AlertCard.jsx";
 import JourneySummaryCard from "./JourneySummaryCard.jsx";
+import DangerBox from "./DangerBox.jsx";
+import StreetLevelView from "./StreetLevelView.jsx";
+import {
+  incidentsNearRoute,
+  summarizeIncidents,
+  shortPlaceName,
+} from "../logic/safetyInsights.js";
 import { acknowledgeAlert, places, endTrip } from "../actions.js";
 import { useStore, setState } from "../store.js";
 import { DEFAULT_SETTINGS } from "../logic/tripMonitoring.js";
@@ -59,6 +67,62 @@ export default function ParentDashboard() {
   const secondsAgo = lastUpdate
     ? Math.max(0, Math.round((Date.now() - lastUpdate.createdAt) / 1000))
     : null;
+
+  // Desktop notifications so a guardian who has tabbed away still hears about
+  // a new alert. Permission is only requested after an explicit opt-in click.
+  const [notifyPermission, setNotifyPermission] = useState("default");
+  const notifiedRef = useRef(new Set());
+
+  useEffect(() => {
+    if (typeof Notification !== "undefined") {
+      setNotifyPermission(Notification.permission);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (typeof Notification === "undefined" || notifyPermission !== "granted") return;
+    for (const alert of pending) {
+      if (notifiedRef.current.has(alert.id)) continue;
+      notifiedRef.current.add(alert.id);
+      try {
+        new Notification(
+          alert.type === "sos" ? "Sentinel — help requested" : "Sentinel — trip alert",
+          {
+            body: alert.message,
+            tag: alert.id,
+          },
+        );
+      } catch {
+        // Notification construction can throw in unsupported contexts; the
+        // in-app alert list is still the source of truth.
+      }
+    }
+  }, [pending, notifyPermission]);
+
+  const enableNotifications = async () => {
+    if (typeof Notification === "undefined") return;
+    try {
+      setNotifyPermission(await Notification.requestPermission());
+    } catch {
+      setNotifyPermission("denied");
+    }
+  };
+
+  const incidents = trip?.route?.contextFactors ?? [];
+  // Summarise the whole corridor, not the truncated display list.
+  const nearbyIncidents = useMemo(
+    () =>
+      incidentsNearRoute(incidents, trip?.route, {
+        withinMeters: 400,
+        limit: Number.MAX_SAFE_INTEGER,
+      }),
+    [incidents, trip],
+  );
+  const incidentSummary = useMemo(
+    () => summarizeIncidents(nearbyIncidents),
+    [nearbyIncidents],
+  );
+  const closestIncident = nearbyIncidents[0] ?? null;
 
   const toggle = (key) => {
     if (key === "checkRiskZones") {
@@ -109,7 +173,7 @@ export default function ParentDashboard() {
             </div>
             <h3>Privacy is the default state.</h3>
             <p>
-              Escort is trip-scoped, not always-on tracking. Switch to
+              Sentinel is trip-scoped, not always-on tracking. Switch to
               the Teen view, choose a route, and start a Safe Trip to see this
               dashboard update live.
             </p>
@@ -200,7 +264,7 @@ export default function ParentDashboard() {
           <div className="teen-avatar teen-avatar-small">{users.teen.name.charAt(0)}</div>
           <div>
             <span>{users.teen.name} is heading to</span>
-            <strong>{trip.destination.name}</strong>
+            <strong title={trip.destination.name}>{shortPlaceName(trip.destination.name)}</strong>
           </div>
           <div className="eta-chip">
             <Clock size={16} weight="bold" aria-hidden="true" />
@@ -228,6 +292,22 @@ export default function ParentDashboard() {
             Updated {secondsAgo === null ? "just now" : `${secondsAgo}s ago`}
           </div>
         </div>
+
+        {/* What the street actually looks like where they are right now. */}
+        <StreetLevelView
+          points={trip.route.points}
+          position={trip.location}
+          title={`Where ${users.teen.name} is`}
+          subtitle="Street-level imagery nearest their last known position"
+          height={190}
+        />
+
+        <DangerBox
+          incident={closestIncident}
+          totalNearby={incidentSummary.total}
+          seriousNearby={incidentSummary.serious}
+          compact
+        />
 
         {/* Trip facts strip */}
         <div className="guardian-trip-facts">
@@ -271,13 +351,27 @@ export default function ParentDashboard() {
             {pending.length > 0 && <span className="alert-count">{pending.length}</span>}
           </div>
 
+          {notifyPermission !== "granted" && (
+            <button
+              type="button"
+              className="notify-optin"
+              onClick={enableNotifications}
+              disabled={notifyPermission === "denied"}
+            >
+              <Bell size={15} weight="fill" aria-hidden="true" />
+              {notifyPermission === "denied"
+                ? "Notifications blocked in browser settings"
+                : "Notify me on this device when an alert arrives"}
+            </button>
+          )}
+
           {alerts.length === 0 ? (
             <div className="calm-alert-state">
               <ShieldCheck size={27} weight="fill" aria-hidden="true" />
               <div>
                 <strong>Quiet is the intended state.</strong>
                 <p>
-                  Escort will check with {users.teen.name} before asking
+                  Sentinel will check with {users.teen.name} before asking
                   you to act.
                 </p>
               </div>

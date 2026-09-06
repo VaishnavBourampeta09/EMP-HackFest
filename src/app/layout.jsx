@@ -6,10 +6,10 @@ import "@fontsource/outfit/700.css";
 import "../styles.css";
 
 export const metadata = {
-  title: "Escort — Maps get you home. Escort makes sure you get home safely.",
+  title: "Sentinel — Maps get you home. Sentinel makes sure you get home safely.",
   description:
-    "Escort compares walking and transit routes on the conditions along the path, explains why one ranked first, and watches a trip in progress without always-on tracking.",
-  icons: { icon: "/escort-logo.png" },
+    "Sentinel compares walking and transit routes on the conditions along the path, explains why one ranked first, and watches a trip in progress without always-on tracking.",
+  icons: { icon: "/icon.svg" },
 };
 
 export const viewport = {

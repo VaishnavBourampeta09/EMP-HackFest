@@ -1,6 +1,7 @@
 "use client";
 
 import { MapPin, Clock, Footprints, Bus, ShieldCheck } from "@phosphor-icons/react";
+import { shortPlaceName } from "../logic/safetyInsights.js";
 
 export default function JourneySummaryCard({ trip, users }) {
   if (!trip) {
@@ -29,7 +30,9 @@ export default function JourneySummaryCard({ trip, users }) {
           </div>
           <div className="route-info">
             <span className="route-label">From</span>
-            <strong>{trip.origin?.name || "Starting point"}</strong>
+            <strong title={trip.origin?.name}>
+              {shortPlaceName(trip.origin?.name) || "Starting point"}
+            </strong>
           </div>
         </div>
 
@@ -41,7 +44,9 @@ export default function JourneySummaryCard({ trip, users }) {
           </div>
           <div className="route-info">
             <span className="route-label">To</span>
-            <strong>{trip.destination?.name || "Destination"}</strong>
+            <strong title={trip.destination?.name}>
+              {shortPlaceName(trip.destination?.name) || "Destination"}
+            </strong>
           </div>
         </div>
       </div>

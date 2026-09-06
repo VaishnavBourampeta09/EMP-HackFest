@@ -1,7 +1,7 @@
 import PlannerApp from "../../components/PlannerApp.jsx";
 
 export const metadata = {
-  title: "Trip planner · Escort",
+  title: "Trip planner · Sentinel",
   description: "Compare safety-aware walking and transit routes.",
 };
 

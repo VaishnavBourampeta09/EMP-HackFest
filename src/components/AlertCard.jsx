@@ -7,6 +7,7 @@ import {
   ShieldWarning,
   Siren,
 } from "@phosphor-icons/react";
+import { shortPlaceName } from "../logic/safetyInsights.js";
 
 const ALERT_COPY = {
   route_deviation: { title: "Off planned route", Icon: MapPin },
@@ -44,7 +45,7 @@ export default function AlertCard({ alert, trip, onAcknowledge }) {
       <p className="alert-message">{alert.message}</p>
       {trip && (
         <p className="alert-meta">
-          {trip.origin.name} to {trip.destination.name} · {trip.route.label} route
+          {shortPlaceName(trip.origin.name)} to {shortPlaceName(trip.destination.name)} · {trip.route.label} route
         </p>
       )}
 
