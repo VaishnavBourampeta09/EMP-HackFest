@@ -1,6 +1,6 @@
 "use client";
 
-import { CaretRight, MapPin, Siren, WarningOctagon } from "@phosphor-icons/react";
+import { CaretRight } from "@phosphor-icons/react";
 
 const CATEGORY_LABEL = {
   violent_crime: "Personal-safety incident",
@@ -41,9 +41,6 @@ export default function DangerBox({
   if (!incident) {
     return (
       <section className="danger-box danger-box-clear" aria-label="Nearby incident summary">
-        <span className="danger-box-icon" aria-hidden="true">
-          <MapPin size={20} weight="fill" />
-        </span>
         <div className="danger-box-body">
           <strong>No recent incidents mapped near this route</strong>
           <p>
@@ -67,44 +64,25 @@ export default function DangerBox({
       className={`danger-box${severe ? " danger-box-severe" : ""}${compact ? " danger-box-compact" : ""}`}
       aria-label="Closest recent incident on this route"
     >
-      <header className="danger-box-head">
-        <span className="danger-box-icon" aria-hidden="true">
-          {severe ? <Siren size={20} weight="fill" /> : <WarningOctagon size={20} weight="fill" />}
-        </span>
-        <div>
-          <p className="danger-box-kicker">Closest recent incident</p>
-          <strong className="danger-box-title">{label}</strong>
-        </div>
-        <span className="danger-box-when">{whenLabel(incident.recencyDays)}</span>
-      </header>
+      <div className="danger-box-head">
+        <p className="danger-box-kicker">Recent incident</p>
+        <strong className="danger-box-title">
+          {label} {whenLabel(incident.recencyDays)}
+        </strong>
+      </div>
 
-      <dl className="danger-box-facts">
-        <div>
-          <dt>Where</dt>
-          <dd>{incident.generalizedLocation || "Near your route"}</dd>
-        </div>
-        <div>
-          <dt>Distance</dt>
-          <dd>{distanceLabel(incident.distanceMeters) ?? "Along your route"}</dd>
-        </div>
-        {incident.description ? (
-          <div>
-            <dt>Reported as</dt>
-            <dd>{incident.description}</dd>
-          </div>
-        ) : null}
-      </dl>
-
-      {totalNearby > 0 && (
-        <p className="danger-box-context">
-          {totalNearby} report{totalNearby === 1 ? "" : "s"} within 400 m of this
-          route{seriousNearby > 0 ? `, ${seriousNearby} of them serious` : ""}.
+      <div className="danger-box-details">
+        <p className="danger-box-location">
+          {incident.generalizedLocation || "Near your route"}
         </p>
-      )}
+        <p className="danger-box-distance">
+          {distanceLabel(incident.distanceMeters) ?? "Along your route"}
+        </p>
+      </div>
 
       {typeof onShowOnMap === "function" && (
         <button type="button" className="danger-box-link" onClick={() => onShowOnMap(incident)}>
-          Show it on the map
+          View details
           <CaretRight size={14} weight="bold" aria-hidden="true" />
         </button>
       )}

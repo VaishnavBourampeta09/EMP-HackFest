@@ -84,9 +84,8 @@ async function transitRoutes(origin, destination, options) {
     };
   } catch (error) {
     attempts.push(providerFailure(error));
+    throw new RoutingProviderError('Transit routing', error.message, { details: { attempts } });
   }
-
-  throw new RoutingProviderError('Transit routing', 'No transit itinerary is available right now.', { details: { attempts } });
 }
 
 export async function planPointToPoint({

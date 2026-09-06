@@ -22,28 +22,16 @@ import {
 } from "@phosphor-icons/react";
 import RouteCard from "./RouteCard.jsx";
 import CheckinSheet from "./CheckinSheet.jsx";
-import SafetyAlertsPanel from "./SafetyAlertsPanel.jsx";
-import RouteComparisonInfo from "./RouteComparisonInfo.jsx";
-import LocationPermissionPrompt from "./LocationPermissionPrompt.jsx";
 import DangerBox from "./DangerBox.jsx";
-import ReportDangerButton from "./ReportDangerButton.jsx";
 import StreetLevelView from "./StreetLevelView.jsx";
 import MapSplit from "./MapSplit.jsx";
 import SosSheet from "./SosSheet.jsx";
 import {
   incidentsNearRoute,
-  isAfterDark,
-  routeWarnings,
-  summarizeIncidents,
   nearestSafePlaces,
   shortPlaceName,
   routeDangerSummary,
 } from "../logic/safetyInsights.js";
-import {
-  lightingForRoute,
-  lightingVerdict,
-  routeBbox,
-} from "../logic/lighting.js";
 import {
   startTrip,
   endTrip,
@@ -70,7 +58,7 @@ const MapView = dynamic(() => import("./MapView.jsx"), {
 });
 
 function routeCondition(route) {
-  return route.conditionScore ?? Math.max(0, 100 - route.riskScore);
+  return route.safetyScore?.toFixed(1) ?? "—";
 }
 
 function TravelModeToggle({ value, onChange }) {
@@ -82,7 +70,6 @@ function TravelModeToggle({ value, onChange }) {
         aria-pressed={value === "walking"}
         onClick={() => onChange("walking")}
       >
-        <Footprints size={18} weight="bold" aria-hidden="true" />
         Walking
       </button>
       <button
@@ -91,7 +78,6 @@ function TravelModeToggle({ value, onChange }) {
         aria-pressed={value === "transit"}
         onClick={() => onChange("transit")}
       >
-        <Bus size={18} weight="bold" aria-hidden="true" />
         Transit
       </button>
     </div>
@@ -148,16 +134,15 @@ function StartTripSheet({ route, guardianName, onClose, onConfirm }) {
           <div>
             <span>Expected arrival</span>
             <strong>
-              {eta.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}
+              {eta.toLocaleTimeString([], {
+                hour: "numeric",
+                minute: "2-digit",
+              })}
             </strong>
           </div>
           <div>
-            <span>Selected route</span>
-            <strong>{route.label}</strong>
-          </div>
-          <div>
-            <span>Route conditions</span>
-            <strong>{routeCondition(route)}/100</strong>
+            <span>Safety Score</span>
+            <strong>{routeCondition(route)}/10</strong>
           </div>
         </div>
 
@@ -184,8 +169,17 @@ function StartTripSheet({ route, guardianName, onClose, onConfirm }) {
   );
 }
 
-function ActiveTripView({ trip, checkin, locationUpdates, simulation, sos, guardian }) {
-  const progress = Math.round(routeProgress(trip.location, trip.route.points) * 100);
+function ActiveTripView({
+  trip,
+  checkin,
+  locationUpdates,
+  simulation,
+  sos,
+  guardian,
+}) {
+  const progress = Math.round(
+    routeProgress(trip.location, trip.route.points) * 100,
+  );
   const arrival = new Date(Date.now() + trip.etaMinutes * 60000);
   const trail = locationUpdates
     .slice()
@@ -201,58 +195,59 @@ function ActiveTripView({ trip, checkin, locationUpdates, simulation, sos, guard
           ? "anomaly"
           : "normal";
 
-  const directions = trip.mode === "transit" && trip.route.legs?.length
-    ? trip.route.legs.map((leg) => {
-        const legType = String(leg.type || leg.mode).toLowerCase();
-        if (legType === "wait") {
+  const directions =
+    trip.mode === "transit" && trip.route.legs?.length
+      ? trip.route.legs.map((leg) => {
+          const legType = String(leg.type || leg.mode).toLowerCase();
+          if (legType === "wait") {
+            return {
+              icon: Clock,
+              title: `Wait at ${leg.at || "the stop"}`,
+              detail: `${formatMinutes(leg.durationMinutes ?? 0)} expected · ${leg.wellLit ? "mapped lighting nearby" : "live arrival monitored"}`,
+            };
+          }
+          if (legType === "transit" || legType === "bus") {
+            const liveDetail = leg.realTime ? " · live arrival" : "";
+            const stopDetail = Number.isFinite(leg.stopCount)
+              ? ` · ${leg.stopCount} stops`
+              : "";
+            return {
+              icon: Bus,
+              title: `${leg.routeShortName || "Bus"} toward ${leg.headsign || leg.to}`,
+              detail: `${formatMinutes(leg.durationMinutes ?? 0)}${stopDetail}${liveDetail}`,
+            };
+          }
           return {
-            icon: Clock,
-            title: `Wait at ${leg.at || "the stop"}`,
-            detail: `${formatMinutes(leg.durationMinutes ?? 0)} expected · ${leg.wellLit ? "mapped lighting nearby" : "live arrival monitored"}`,
+            icon: Footprints,
+            title: `Walk to ${shortPlaceName(leg.to || trip.destination.name)}`,
+            detail: `${formatMinutes(leg.durationMinutes ?? 0)} walking`,
           };
-        }
-        if (legType === "transit" || legType === "bus") {
-          const liveDetail = leg.realTime ? " · live arrival" : "";
-          const stopDetail = Number.isFinite(leg.stopCount)
-            ? ` · ${leg.stopCount} stops`
-            : "";
-          return {
-            icon: Bus,
-            title: `${leg.routeShortName || "Bus"} toward ${leg.headsign || leg.to}`,
-            detail: `${formatMinutes(leg.durationMinutes ?? 0)}${stopDetail}${liveDetail}`,
-          };
-        }
-        return {
-          icon: Footprints,
-          title: `Walk to ${shortPlaceName(leg.to || trip.destination.name)}`,
-          detail: `${formatMinutes(leg.durationMinutes ?? 0)} walking`,
-        };
-      })
-    : trip.route.instructions?.length
-      ? trip.route.instructions.slice(0, 5).map((step) => ({
-          icon: NavigationArrow,
-          title: step.instruction || "Continue on the walking route",
-          detail: step.distanceMeters
-            ? `${Math.max(10, Math.round(step.distanceMeters / 10) * 10)} m`
-            : "Follow the mapped route",
-        }))
-      : [
-        {
-          icon: NavigationArrow,
-          title: "Continue toward NE 85th Street",
-          detail: "Stay on the selected, well-traveled route",
-        },
-        {
-          icon: ArrowRight,
-          title: "Turn right on 156th Avenue NE",
-          detail: "Main-road lighting continues for 0.8 mi",
-        },
-        {
-          icon: MapPin,
-          title: `Arrive at ${shortPlaceName(trip.destination.name)}`,
-          detail: `${formatMinutes(trip.etaMinutes)} remaining`,
-        },
-      ];
+        })
+      : trip.route.instructions?.length
+        ? trip.route.instructions.slice(0, 5).map((step) => ({
+            icon: NavigationArrow,
+            title: step.instruction || "Continue on the walking route",
+            detail: step.distanceMeters
+              ? `${Math.max(10, Math.round(step.distanceMeters / 10) * 10)} m`
+              : "Follow the mapped route",
+          }))
+        : [
+            {
+              icon: NavigationArrow,
+              title: "Continue toward NE 85th Street",
+              detail: "Stay on the selected, well-traveled route",
+            },
+            {
+              icon: ArrowRight,
+              title: "Turn right on 156th Avenue NE",
+              detail: "Main-road lighting continues for 0.8 mi",
+            },
+            {
+              icon: MapPin,
+              title: `Arrive at ${shortPlaceName(trip.destination.name)}`,
+              detail: `${formatMinutes(trip.etaMinutes)} remaining`,
+            },
+          ];
 
   return (
     <div className="map-viewport">
@@ -263,7 +258,6 @@ function ActiveTripView({ trip, checkin, locationUpdates, simulation, sos, guard
             <>
               <MapView
                 zones={trip.route.contextFactors || []}
-                places={places}
                 routes={[trip.route]}
                 activeRouteId={trip.route.routeId}
                 teenLocation={trip.location}
@@ -301,14 +295,22 @@ function ActiveTripView({ trip, checkin, locationUpdates, simulation, sos, guard
 
         <div className="active-destination">
           <span>Heading to</span>
-          <h2 title={trip.destination.name}>{shortPlaceName(trip.destination.name)}</h2>
+          <h2 title={trip.destination.name}>
+            {shortPlaceName(trip.destination.name)}
+          </h2>
           <p>
             Arrive around{" "}
-            {arrival.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}
+            {arrival.toLocaleTimeString([], {
+              hour: "numeric",
+              minute: "2-digit",
+            })}
           </p>
         </div>
 
-        <div className="progress-track" aria-label={`${progress}% of trip complete`}>
+        <div
+          className="progress-track"
+          aria-label={`${progress}% of trip complete`}
+        >
           <span style={{ width: `${progress}%` }} />
         </div>
 
@@ -328,10 +330,14 @@ function ActiveTripView({ trip, checkin, locationUpdates, simulation, sos, guard
               {state === "alerted" && "Your guardian has been notified"}
             </strong>
             <p>
-              {state === "normal" && "No action needed. Your guardian sees a calm status."}
-              {state === "anomaly" && "No alert yet. A sustained change triggers a check-in first."}
-              {state === "checkin" && "Reply in the open prompt so the trip can continue quietly."}
-              {state === "alerted" && "Your last location and planned route are visible to them."}
+              {state === "normal" &&
+                "No action needed. Your guardian sees a calm status."}
+              {state === "anomaly" &&
+                "No alert yet. A sustained change triggers a check-in first."}
+              {state === "checkin" &&
+                "Reply in the open prompt so the trip can continue quietly."}
+              {state === "alerted" &&
+                "Your last location and planned route are visible to them."}
             </p>
           </div>
         </div>
@@ -346,8 +352,8 @@ function ActiveTripView({ trip, checkin, locationUpdates, simulation, sos, guard
             <strong>{trip.offRouteMeters ?? 0} m</strong>
           </div>
           <div>
-            <span>Conditions</span>
-            <strong>{routeCondition(trip.route)}/100</strong>
+            <span>Safety Score</span>
+            <strong>{routeCondition(trip.route)}/10</strong>
           </div>
         </div>
 
@@ -356,7 +362,10 @@ function ActiveTripView({ trip, checkin, locationUpdates, simulation, sos, guard
           {directions.slice(0, 2).map((direction, index) => {
             const Icon = direction.icon;
             return (
-              <div className={index === 0 ? "direction active" : "direction"} key={`${direction.title}-${index}`}>
+              <div
+                className={index === 0 ? "direction active" : "direction"}
+                key={`${direction.title}-${index}`}
+              >
                 <span className="direction-icon">
                   <Icon size={17} weight="bold" aria-hidden="true" />
                 </span>
@@ -376,8 +385,7 @@ function ActiveTripView({ trip, checkin, locationUpdates, simulation, sos, guard
             onClick={() => endTrip("completed")}
             title="Tell your guardian you've safely arrived at your destination"
           >
-            <Check size={20} weight="bold" aria-hidden="true" />
-            I arrived safely
+            <Check size={20} weight="bold" aria-hidden="true" />I arrived safely
           </button>
           <button
             type="button"
@@ -386,8 +394,7 @@ function ActiveTripView({ trip, checkin, locationUpdates, simulation, sos, guard
             title="Send immediate alert to your guardian"
             aria-label="Send emergency alert to guardian"
           >
-            <Siren size={20} weight="fill" aria-hidden="true" />
-            I need help NOW
+            <Siren size={20} weight="fill" aria-hidden="true" />I need help NOW
           </button>
         </div>
       </aside>
@@ -409,13 +416,14 @@ function ActiveTripView({ trip, checkin, locationUpdates, simulation, sos, guard
 }
 
 export default function TeenTripScreen() {
-  const { trip, checkin, locationUpdates, simulation, users, sos, reports } = useStore();
+  const { trip, checkin, locationUpdates, simulation, users, sos, reports } =
+    useStore();
   const [originName, setOriginName] = useState("Redmond Library, Redmond, WA");
   const [destinationName, setDestinationName] = useState(
     "Downtown Redmond Station, Redmond, WA",
   );
   const [travelMode, setTravelMode] = useState("walking");
-  const [departureTime, setDepartureTime] = useState("20:40");
+  const [safetyMode, setSafetyMode] = useState("day");
   const [plan, setPlan] = useState(null);
   const [selectedRoute, setSelectedRoute] = useState(null);
   const [consentOpen, setConsentOpen] = useState(false);
@@ -425,56 +433,11 @@ export default function TeenTripScreen() {
   const [replanToken, setReplanToken] = useState(0);
   const requestRef = useRef(null);
 
-  const currentTime = useMemo(() => {
-    const date = new Date();
-    const [hours, minutes] = departureTime.split(":").map(Number);
-    date.setHours(hours, minutes, 0, 0);
-    return date;
-  }, [departureTime]);
-
   const routes = plan?.routes || [];
   const incidents = useMemo(
     () => [...(reports || []), ...(plan?.incidents || [])],
     [reports, plan],
   );
-  const afterDark = isAfterDark(currentTime);
-
-  // Real street lamp positions for the selected route's bounding box.
-  const [lamps, setLamps] = useState([]);
-  const lightingKey = useMemo(() => {
-    const box = routeBbox(selectedRoute?.points ?? []);
-    return box ? box.map((n) => n.toFixed(3)).join(",") : null;
-  }, [selectedRoute]);
-
-  useEffect(() => {
-    if (!lightingKey) {
-      setLamps([]);
-      return undefined;
-    }
-    const controller = new AbortController();
-    fetch(`/api/lighting?bbox=${encodeURIComponent(lightingKey)}`, {
-      signal: controller.signal,
-    })
-      .then((response) => response.json())
-      .then((payload) => {
-        if (controller.signal.aborted) return;
-        setLamps(payload?.ok ? payload.lamps || [] : []);
-      })
-      .catch((error) => {
-        if (error.name !== "AbortError") setLamps([]);
-      });
-    return () => controller.abort();
-  }, [lightingKey]);
-
-  const lighting = useMemo(
-    () => lightingForRoute(selectedRoute?.points ?? [], lamps),
-    [selectedRoute, lamps],
-  );
-  const lightVerdict = useMemo(
-    () => lightingVerdict(lighting, afterDark),
-    [lighting, afterDark],
-  );
-
   // Counts must describe every report within the corridor, not just the
   // handful the panel lists — otherwise "12 of them serious" is only ever
   // reporting the display cap back to the user.
@@ -490,23 +453,6 @@ export default function TeenTripScreen() {
     () => allNearbyIncidents.slice(0, 12),
     [allNearbyIncidents],
   );
-  const incidentSummary = useMemo(
-    () => summarizeIncidents(allNearbyIncidents),
-    [allNearbyIncidents],
-  );
-  const warnings = useMemo(
-    () =>
-      selectedRoute
-        ? routeWarnings(selectedRoute, nearbyIncidents, {
-            afterDark,
-            alternatives: routes,
-          })
-        : [],
-    [selectedRoute, nearbyIncidents, afterDark, routes],
-  );
-  // The headline hazard: most severe, then most recent, then closest.
-  const closestIncident = nearbyIncidents[0] ?? null;
-
   const compareRoutes = useCallback(async () => {
     const origin = originName.trim();
     const destination = destinationName.trim();
@@ -527,11 +473,15 @@ export default function TeenTripScreen() {
           origin,
           destination,
           mode: travelMode,
-          departureTime: currentTime.toISOString(),
+          safetyMode,
           maxCandidates: 3,
         }),
       });
-      const payload = await response.json();
+      const contentType = response.headers.get("content-type") || "";
+      const payload = contentType.includes("application/json")
+        ? await response.json()
+        : { ok: false, error: { message: `Planning service returned ${response.status}. Restart the app server and try again.` } };
+      if (requestRef.current !== controller || controller.signal.aborted) return;
       if (!response.ok || !payload.ok) {
         throw new Error(
           payload?.error?.message || "Sentinel could not plan this trip.",
@@ -548,7 +498,7 @@ export default function TeenTripScreen() {
         })),
       });
     } catch (error) {
-      if (error.name === "AbortError") return;
+      if (error.name === "AbortError" || requestRef.current !== controller) return;
       setPlan(null);
       setPlanningError(error.message);
     } finally {
@@ -557,7 +507,7 @@ export default function TeenTripScreen() {
         setIsComparing(false);
       }
     }
-  }, [currentTime, destinationName, isComparing, originName, travelMode]);
+  }, [safetyMode, destinationName, isComparing, originName, travelMode]);
 
   useEffect(() => {
     const initialRequest = window.setTimeout(() => compareRoutes(), 100);
@@ -581,7 +531,9 @@ export default function TeenTripScreen() {
   const replanNow = () => setReplanToken((token) => token + 1);
 
   useEffect(() => {
-    setSelectedRoute(routes.find((route) => route.recommended) || routes[0] || null);
+    setSelectedRoute(
+      routes.find((route) => route.recommended) || routes[0] || null,
+    );
   }, [routes]);
 
   const invalidatePlan = () => {
@@ -601,12 +553,16 @@ export default function TeenTripScreen() {
     setIsLocating(true);
     navigator.geolocation.getCurrentPosition(
       ({ coords }) => {
-        setOriginName(`${coords.latitude.toFixed(6)},${coords.longitude.toFixed(6)}`);
+        setOriginName(
+          `${coords.latitude.toFixed(6)},${coords.longitude.toFixed(6)}`,
+        );
         invalidatePlan();
         setIsLocating(false);
       },
       () => {
-        setPlanningError("Location access was unavailable. Enter a starting point instead.");
+        setPlanningError(
+          "Location access was unavailable. Enter a starting point instead.",
+        );
         setIsLocating(false);
       },
       { enableHighAccuracy: true, timeout: 8_000, maximumAge: 30_000 },
@@ -637,7 +593,6 @@ export default function TeenTripScreen() {
             <>
               <MapView
                 zones={incidents}
-                places={places}
                 routes={routes}
                 activeRouteId={selectedRoute?.routeId}
                 onRouteSelect={(route) => setSelectedRoute(route)}
@@ -648,28 +603,9 @@ export default function TeenTripScreen() {
                   <Path size={24} weight="bold" aria-hidden="true" />
                   <div>
                     <strong>Ready for any point-to-point trip</strong>
-                    <span>Enter place names, addresses, or latitude/longitude pairs.</span>
-                  </div>
-                </div>
-              )}
-              {selectedRoute && (
-                <div className="map-selection-summary">
-                  <span className="map-selection-icon">
-                    {travelMode === "transit" ? (
-                      <Bus size={20} weight="fill" aria-hidden="true" />
-                    ) : (
-                      <Footprints size={20} weight="fill" aria-hidden="true" />
-                    )}
-                  </span>
-                  <div>
-                    <span>{selectedRoute.recommended ? "Recommended" : "Selected route"}</span>
-                    <strong>
-                      {formatMinutes(selectedRoute.durationMinutes)} · {selectedRoute.label}
-                    </strong>
-                  </div>
-                  <div className="map-condition-score">
-                    <span>Conditions</span>
-                    <strong>{routeCondition(selectedRoute)}</strong>
+                    <span>
+                      Enter place names, addresses, or latitude/longitude pairs.
+                    </span>
                   </div>
                 </div>
               )}
@@ -691,16 +627,12 @@ export default function TeenTripScreen() {
 
       {/* Floating left sidebar */}
       <aside className="sidebar-float">
-        {/* Location permission prompt */}
-        <LocationPermissionPrompt
-          onPermissionRequested={(status) => {
-            // Could store in state if needed for future use
-          }}
-        />
-
         <div className="route-form">
           <div className="route-field">
-            <span className="field-marker field-marker-origin" aria-hidden="true" />
+            <span
+              className="field-marker field-marker-origin"
+              aria-hidden="true"
+            />
             <label htmlFor="origin">Starting point</label>
             <input
               id="origin"
@@ -715,23 +647,13 @@ export default function TeenTripScreen() {
               placeholder="Place, address, or lat,lng"
               autoComplete="street-address"
             />
-            <NavigationArrow size={18} weight="fill" aria-hidden="true" />
           </div>
-          <button
-            type="button"
-            className="swap-route-button"
-            aria-label="Swap starting point and destination"
-            onClick={() => {
-              setOriginName(destinationName);
-              setDestinationName(originName);
-              invalidatePlan();
-            }}
-          >
-            <ArrowsClockwise size={15} weight="bold" aria-hidden="true" />
-          </button>
-          <span className="field-connector" aria-hidden="true" />
+
           <div className="route-field">
-            <span className="field-marker field-marker-destination" aria-hidden="true" />
+            <span
+              className="field-marker field-marker-destination"
+              aria-hidden="true"
+            />
             <label htmlFor="destination">Destination</label>
             <input
               id="destination"
@@ -746,31 +668,7 @@ export default function TeenTripScreen() {
               placeholder="Place, address, or lat,lng"
               autoComplete="street-address"
             />
-            <MapPin size={19} weight="fill" aria-hidden="true" />
           </div>
-        </div>
-
-        <div className="quick-destinations" aria-label="Saved destinations">
-          <button type="button" onClick={useCurrentLocation} disabled={isLocating}>
-            <NavigationArrow size={13} weight="fill" aria-hidden="true" />
-            {isLocating ? "Locating…" : "My location"}
-          </button>
-          {places
-            .filter((place) => place.name !== demoRoutes.origin.name)
-            .slice(0, 2)
-            .map((place) => (
-              <button
-                key={place.id}
-                type="button"
-                onClick={() => {
-                  setDestinationName(`${place.name}, Redmond, WA`);
-                  invalidatePlan();
-                  replanNow();
-                }}
-              >
-                {place.name}
-              </button>
-            ))}
         </div>
 
         <TravelModeToggle
@@ -783,31 +681,41 @@ export default function TeenTripScreen() {
           }}
         />
 
-        <div className="departure-row">
-          <label htmlFor="departure-time">
-            <Clock size={17} weight="bold" aria-hidden="true" />
-            Depart at
-          </label>
-          <input
-            id="departure-time"
-            type="time"
-            value={departureTime}
-            onChange={(event) => {
-              setDepartureTime(event.target.value);
-              invalidatePlan();
-            }}
-          />
+        <div className="travel-toggle" aria-label="Safety mode">
+          {["day", "night"].map((mode) => (
+            <button
+              key={mode}
+              type="button"
+              className={safetyMode === mode ? "active" : ""}
+              aria-pressed={safetyMode === mode}
+              onClick={() => {
+                if (mode === safetyMode) return;
+                setSafetyMode(mode);
+                invalidatePlan();
+                replanNow();
+              }}
+            >
+              {mode === "day" ? "Day" : "Night"}
+            </button>
+          ))}
         </div>
 
         <button
           type="button"
           className="button button-lime button-block"
           onClick={compareRoutes}
-          disabled={!originName.trim() || !destinationName.trim() || isComparing}
+          disabled={
+            !originName.trim() || !destinationName.trim() || isComparing
+          }
         >
           {isComparing ? (
             <>
-              <ArrowsClockwise className="spin" size={18} weight="bold" aria-hidden="true" />
+              <ArrowsClockwise
+                className="spin"
+                size={18}
+                weight="bold"
+                aria-hidden="true"
+              />
               Building route candidates…
             </>
           ) : (
@@ -832,14 +740,9 @@ export default function TeenTripScreen() {
           <div className="route-results">
             <div className="results-heading">
               <strong>
-                {routes.length} {travelMode === "walking" ? "walking" : "transit"} options
+                {routes.length}{" "}
+                {travelMode === "walking" ? "walking" : "transit"} options
               </strong>
-              <span className="night-weight">
-                <Sparkle size={14} weight="fill" aria-hidden="true" />
-                {currentTime.getHours() >= 19 || currentTime.getHours() < 6
-                  ? "Night weighting"
-                  : "Day weighting"}
-              </span>
             </div>
 
             <div className="route-list" role="list" aria-label="Route options">
@@ -853,8 +756,6 @@ export default function TeenTripScreen() {
                 />
               ))}
             </div>
-
-            <ReportDangerButton location={selectedRoute?.points?.[0] ?? null} />
 
             <button
               type="button"

@@ -2,18 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import dynamic from "next/dynamic";
-import {
-  Bell,
-  Check,
-  Clock,
-  Eye,
-  Footprints,
-  LockKey,
-  MapPin,
-  ShieldCheck,
-  Warning,
-  WarningOctagon,
-} from "@phosphor-icons/react";
+import { LockKey, ShieldCheck, WarningOctagon } from "@phosphor-icons/react";
 import AlertCard from "./AlertCard.jsx";
 import JourneySummaryCard from "./JourneySummaryCard.jsx";
 import DangerBox from "./DangerBox.jsx";
@@ -24,6 +13,7 @@ import {
   incidentsNearRoute,
   summarizeIncidents,
   shortPlaceName,
+  isRiskyIncident,
 } from "../logic/safetyInsights.js";
 import { acknowledgeAlert, places } from "../actions.js";
 import { useStore } from "../store.js";
@@ -40,7 +30,7 @@ const MapView = dynamic(() => import("./MapView.jsx"), {
 });
 
 function conditionScore(route) {
-  return route?.conditionScore ?? Math.max(0, 100 - (route?.riskScore ?? 0));
+  return route?.safetyScore?.toFixed(1) ?? "—";
 }
 
 export default function ParentDashboard() {
@@ -63,13 +53,16 @@ export default function ParentDashboard() {
   }, []);
 
   useEffect(() => {
-    if (typeof Notification === "undefined" || notifyPermission !== "granted") return;
+    if (typeof Notification === "undefined" || notifyPermission !== "granted")
+      return;
     for (const alert of pending) {
       if (notifiedRef.current.has(alert.id)) continue;
       notifiedRef.current.add(alert.id);
       try {
         new Notification(
-          alert.type === "sos" ? "Sentinel — help requested" : "Sentinel — trip alert",
+          alert.type === "sos"
+            ? "Sentinel — help requested"
+            : "Sentinel — trip alert",
           { body: alert.message, tag: alert.id },
         );
       } catch {
@@ -90,7 +83,10 @@ export default function ParentDashboard() {
 
   // Community reports sit alongside the official feed.
   const incidents = useMemo(
-    () => [...(reports || []), ...(trip?.route?.contextFactors ?? [])],
+    () =>
+      [...(reports || []), ...(trip?.route?.contextFactors ?? [])].filter(
+        isRiskyIncident,
+      ),
     [reports, trip],
   );
   // Summarise the whole corridor, not the truncated display list.
@@ -112,12 +108,14 @@ export default function ParentDashboard() {
     return (
       <div className="map-viewport">
         <div className="map-base">
-          <MapView places={places} height="100%" />
+          <MapView height="100%" />
           <div className="map-resting-message">
             <ShieldCheck size={24} weight="fill" aria-hidden="true" />
             <div>
               <strong>No active Safe Trip</strong>
-              <span>The map stays private until {users.teen.name} starts one.</span>
+              <span>
+                The map stays private until {users.teen.name} starts one.
+              </span>
             </div>
           </div>
         </div>
@@ -163,25 +161,20 @@ export default function ParentDashboard() {
     attention: {
       title: "Needs your attention",
       detail: `${pending.length || 1} unresolved trip alert`,
-      icon: Warning,
     },
     checking: {
       title: "Checking in first",
       detail: `${users.teen.name} has a safety prompt open`,
-      icon: Bell,
     },
     complete: {
       title: "Arrived",
       detail: "The Safe Trip has ended",
-      icon: Check,
     },
     calm: {
       title: "Trip looks on track",
       detail: "No action is needed from you",
-      icon: ShieldCheck,
     },
   }[status];
-  const StatusIcon = statusCopy.icon;
 
   return (
     <div className="map-viewport">
@@ -192,7 +185,6 @@ export default function ParentDashboard() {
             <>
               <MapView
                 zones={incidents}
-                places={places}
                 routes={[trip.route]}
                 activeRouteId={trip.route.routeId}
                 teenLocation={trip.location}
@@ -202,62 +194,6 @@ export default function ParentDashboard() {
                   .map((update) => [update.lat, update.lng])}
                 height="100%"
               />
-              <div className="guardian-map-card">
-                <div className="guardian-map-card-head">
-                  <div className="teen-avatar teen-avatar-small">
-                    {users.teen.name.charAt(0)}
-                  </div>
-                  <div className="guardian-map-card-who">
-                    <span>{users.teen.name} is heading to</span>
-                    <strong title={trip.destination.name}>
-                      {shortPlaceName(trip.destination.name)}
-                    </strong>
-                  </div>
-                  <div className="eta-chip">
-                    <Clock size={16} weight="bold" aria-hidden="true" />
-                    {formatMinutes(trip.etaMinutes)}
-                  </div>
-                </div>
-
-                {/* What is actually around them, not just where they are. */}
-                <dl className="guardian-map-card-stats">
-                  <div>
-                    <dt>Nearby reports</dt>
-                    <dd>{incidentSummary.total}</dd>
-                  </div>
-                  <div>
-                    <dt>Serious</dt>
-                    <dd className={incidentSummary.serious > 0 ? "is-warn" : undefined}>
-                      {incidentSummary.serious}
-                    </dd>
-                  </div>
-                  <div>
-                    <dt>This week</dt>
-                    <dd>{incidentSummary.lastWeek}</dd>
-                  </div>
-                  <div>
-                    <dt>Off route</dt>
-                    <dd>{trip.offRouteMeters ?? 0} m</dd>
-                  </div>
-                </dl>
-
-                {closestIncident && (
-                  <p className="guardian-map-card-danger">
-                    <WarningOctagon size={14} weight="fill" aria-hidden="true" />
-                    <span>
-                      <strong>
-                        {closestIncident.categoryLabel ||
-                          closestIncident.description ||
-                          "Reported incident"}
-                      </strong>{" "}
-                      · {closestIncident.distanceMeters} m from the route
-                      {closestIncident.generalizedLocation
-                        ? ` · ${closestIncident.generalizedLocation}`
-                        : ""}
-                    </span>
-                  </p>
-                )}
-              </div>
             </>
           }
           street={
@@ -273,84 +209,57 @@ export default function ParentDashboard() {
         />
       </div>
 
-      <aside className="sidebar-float guardian-float" aria-labelledby="guardian-trip-title">
-        <JourneySummaryCard trip={trip} users={users} />
+      <aside
+        className="sidebar-float guardian-float"
+        aria-labelledby="guardian-trip-title"
+      >
+        {/* Trip info section */}
+        <div className="sidebar-section primary-section">
+          <JourneySummaryCard trip={trip} users={users} />
 
-        <div className={`guardian-status-banner guardian-status-${status}`}>
-          <div className="guardian-status-icon">
-            <StatusIcon size={22} weight="fill" aria-hidden="true" />
-          </div>
-          <div>
-            <span>Live trip status</span>
-            <h2 id="guardian-trip-title">{statusCopy.title}</h2>
-            <p>{statusCopy.detail}</p>
-          </div>
-          <div className="last-update">
-            <span className={status === "calm" ? "pulse-live" : ""} />
-            {secondsAgo === null ? "just now" : `${secondsAgo}s ago`}
-          </div>
-        </div>
-
-        <DangerBox
-          incident={closestIncident}
-          totalNearby={incidentSummary.total}
-          seriousNearby={incidentSummary.serious}
-          compact
-        />
-
-        <div className="guardian-trip-facts">
-          <div>
-            <Footprints size={18} weight="bold" aria-hidden="true" />
-            <span>Route</span>
-            <strong>{trip.route.label}</strong>
-          </div>
-          <div>
-            <ShieldCheck size={18} weight="fill" aria-hidden="true" />
-            <span>Conditions</span>
-            <strong>{conditionScore(trip.route)}/100</strong>
-          </div>
-          <div>
-            <MapPin size={18} weight="fill" aria-hidden="true" />
-            <span>Off route</span>
-            <strong>{trip.offRouteMeters ?? 0} m</strong>
-          </div>
-          <div>
-            <Eye size={18} weight="bold" aria-hidden="true" />
-            <span>Sharing</span>
-            <strong>Trip only</strong>
-          </div>
-        </div>
-
-        <section className="alerts-panel" aria-labelledby="alerts-heading">
-          <div className="sidebar-section-heading">
-            <Bell size={17} weight="fill" aria-hidden="true" />
-            <h3 id="alerts-heading">Trip updates</h3>
-            {pending.length > 0 && <span className="alert-count">{pending.length}</span>}
-          </div>
-
-          {notifyPermission !== "granted" && (
-            <button
-              type="button"
-              className="notify-optin"
-              onClick={enableNotifications}
-              disabled={notifyPermission === "denied"}
-            >
-              <Bell size={15} weight="fill" aria-hidden="true" />
-              {notifyPermission === "denied"
-                ? "Notifications blocked in browser settings"
-                : "Notify me when an alert arrives"}
-            </button>
-          )}
-
-          {alerts.length === 0 ? (
-            <div className="calm-alert-state">
-              <ShieldCheck size={22} weight="fill" aria-hidden="true" />
-              <div>
-                <strong>Quiet is the intended state.</strong>
-                <p>Sentinel checks with {users.teen.name} before asking you to act.</p>
-              </div>
+          <div className={`guardian-status-banner guardian-status-${status}`}>
+            <div>
+              <h2 id="guardian-trip-status">Status</h2>
+              <h1 id="guardian-trip-title">{statusCopy.title}</h1>
             </div>
-          ) : (
+          </div>
+        </div>
+
+        {/* Safety section */}
+        <div className="sidebar-section safety-section">
+          <DangerBox
+            incident={closestIncident}
+            totalNearby={incidentSummary.total}
+            seriousNearby={incidentSummary.serious}
+            compact
+          />
+        </div>
+
+        {/* Notifications section */}
+        <section
+          className="sidebar-section alerts-panel"
+          aria-labelledby="alerts-heading"
+        >
+          <div className="sidebar-section-heading">
+            <h3 id="alerts-heading">Updates</h3>
+            {pending.length > 0 && (
+              <span className="alert-count">{pending.length}</span>
+            )}
+          </div>
+
+          <label className="alerts-toggle">
+            <input
+              type="checkbox"
+              checked={notifyPermission === "granted"}
+              onChange={enableNotifications}
+              disabled={notifyPermission === "denied"}
+            />
+            <span>
+              Trip alerts {notifyPermission === "granted" ? "ON" : "OFF"}
+            </span>
+          </label>
+
+          {alerts.length > 0 && (
             <div className="alert-list">
               {alerts.map((alert) => (
                 <AlertCard
@@ -363,8 +272,6 @@ export default function ParentDashboard() {
             </div>
           )}
         </section>
-
-        <ReportDangerButton location={trip.location} compact />
       </aside>
     </div>
   );

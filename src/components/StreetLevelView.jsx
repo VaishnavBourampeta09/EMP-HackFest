@@ -10,7 +10,6 @@ import {
   Eye,
   Pause,
   Play,
-  ShieldCheck,
   Spinner,
   WarningOctagon,
 } from "@phosphor-icons/react";
@@ -49,7 +48,8 @@ function googleStreetViewUrl(point, heading) {
   url.searchParams.set("api", "1");
   url.searchParams.set("map_action", "pano");
   url.searchParams.set("viewpoint", `${point[0]},${point[1]}`);
-  if (Number.isFinite(heading)) url.searchParams.set("heading", String(Math.round(heading)));
+  if (Number.isFinite(heading))
+    url.searchParams.set("heading", String(Math.round(heading)));
   return url.toString();
 }
 
@@ -92,7 +92,9 @@ export default function StreetLevelView({
     if (points.length < 2) return null;
     const first = points[0];
     const last = points[points.length - 1];
-    return [points.length, ...first, ...last].map((n) => Number(n).toFixed(4)).join(":");
+    return [points.length, ...first, ...last]
+      .map((n) => Number(n).toFixed(4))
+      .join(":");
   }, [points]);
 
   useEffect(() => {
@@ -113,7 +115,13 @@ export default function StreetLevelView({
       signal: controller.signal,
       body: JSON.stringify({ points }),
     })
-      .then((response) => response.json())
+      .then(async (response) => {
+        const contentType = response.headers.get("content-type") || "";
+        if (!contentType.includes("application/json")) {
+          throw new Error(`Street imagery service returned ${response.status}`);
+        }
+        return response.json();
+      })
       .then((payload) => {
         if (controller.signal.aborted) return;
         if (!payload?.ok) throw new Error(payload?.message || "No imagery");
@@ -148,8 +156,10 @@ export default function StreetLevelView({
           (incident) =>
             Number.isFinite(incident?.lat) &&
             Number.isFinite(incident?.lng) &&
-            haversineMeters([frame.lat, frame.lng], [incident.lat, incident.lng]) <=
-              HAZARD_RADIUS_M,
+            haversineMeters(
+              [frame.lat, frame.lng],
+              [incident.lat, incident.lng],
+            ) <= HAZARD_RADIUS_M,
         )
         .sort((a, b) => (b.severity ?? 0) - (a.severity ?? 0))
         .slice(0, 4),
@@ -180,10 +190,11 @@ export default function StreetLevelView({
   }, [isFollowing, followIndex]);
 
   useEffect(() => {
-    if (isFollowing || manual || !playing || usable.length < 2) return undefined;
+    if (isFollowing || manual || !playing || usable.length < 2)
+      return undefined;
     const id = window.setInterval(() => {
       setIndex((current) => (current + 1) % usable.length);
-    }, 700);
+    }, 2200);
     return () => window.clearInterval(id);
   }, [isFollowing, manual, playing, usable.length]);
 
@@ -194,7 +205,7 @@ export default function StreetLevelView({
       const next = usable[(index + offset) % usable.length];
       if (!next) continue;
       const img = new window.Image();
-      img.referrerPolicy = 'no-referrer';
+      img.referrerPolicy = "no-referrer";
       img.src = next.imageUrl;
     }
   }, [index, usable]);
@@ -205,7 +216,9 @@ export default function StreetLevelView({
   const externalUrl = googleStreetViewUrl(anchor, frame?.heading);
   const hazards = hazardsByFrame[safeIndex] ?? [];
   const worst = hazards[0] ?? null;
-  const totalHazardSpots = hazardsByFrame.filter((list) => list.length > 0).length;
+  const totalHazardSpots = hazardsByFrame.filter(
+    (list) => list.length > 0,
+  ).length;
   const canFollow = followIndex !== null;
 
   // The last painted frame stays underneath so the incoming one can fade in
@@ -240,9 +253,9 @@ export default function StreetLevelView({
             {manual
               ? "Paused where you chose"
               : (subtitle ??
-                  (isFollowing
-                    ? "Following the live position"
-                    : "Playing through the route"))}
+                (isFollowing
+                  ? "Following the live position"
+                  : "Playing through the route"))}
           </span>
         </div>
 
@@ -272,17 +285,31 @@ export default function StreetLevelView({
             type="button"
             className="street-view-play"
             onClick={() => setPlaying((value) => !value)}
-            aria-label={playing ? "Pause the walk-through" : "Play the walk-through"}
+            aria-label={
+              playing ? "Pause the walk-through" : "Play the walk-through"
+            }
           >
-            {playing ? <Pause size={14} weight="fill" /> : <Play size={14} weight="fill" />}
+            {playing ? (
+              <Pause size={14} weight="fill" />
+            ) : (
+              <Play size={14} weight="fill" />
+            )}
           </button>
         )}
       </header>
 
-      <div className="street-view-stage" style={fill ? undefined : { height }}>
+      <div
+        className={`street-view-stage${frame && worst ? " street-view-stage-danger" : ""}`}
+        style={fill ? undefined : { height }}
+      >
         {status === "loading" && (
           <div className="street-view-state" role="status">
-            <Spinner size={20} weight="bold" className="spin" aria-hidden="true" />
+            <Spinner
+              size={20}
+              weight="bold"
+              className="spin"
+              aria-hidden="true"
+            />
             <span>Looking for street-level imagery…</span>
           </div>
         )}
@@ -343,24 +370,15 @@ export default function StreetLevelView({
                 over the previous picture instead of hiding it behind a spinner. */}
             {!loadedIds.has(frame.id) && !previous && (
               <div className="street-view-loading" role="status">
-                <Spinner size={18} weight="bold" className="spin" aria-hidden="true" />
+                <Spinner
+                  size={18}
+                  weight="bold"
+                  className="spin"
+                  aria-hidden="true"
+                />
                 <span>Loading this block…</span>
               </div>
             )}
-
-            <div className="street-view-badges">
-              {bearingLabel(frame.heading) && (
-                <span className="street-view-badge">
-                  <Compass size={12} weight="bold" aria-hidden="true" />
-                  {bearingLabel(frame.heading)}
-                </span>
-              )}
-              {shotYear(frame.shotDate) && (
-                <span className="street-view-badge street-view-badge-muted">
-                  {shotYear(frame.shotDate)}
-                </span>
-              )}
-            </div>
 
             {/* What was reported at this exact spot. */}
             {worst ? (
@@ -371,7 +389,9 @@ export default function StreetLevelView({
                 <WarningOctagon size={16} weight="fill" aria-hidden="true" />
                 <div>
                   <strong>
-                    {worst.categoryLabel || worst.description || "Reported incident"}
+                    {worst.categoryLabel ||
+                      worst.description ||
+                      "Reported incident"}
                     {hazards.length > 1 ? ` +${hazards.length - 1} more` : ""}
                   </strong>
                   <span>
@@ -380,14 +400,7 @@ export default function StreetLevelView({
                   </span>
                 </div>
               </div>
-            ) : (
-              <div className="street-view-hazard street-view-hazard-clear" role="status">
-                <ShieldCheck size={16} weight="fill" aria-hidden="true" />
-                <div>
-                  <strong>No reports at this spot</strong>
-                </div>
-              </div>
-            )}
+            ) : null}
 
             {usable.length > 1 && (
               <div className="street-view-nav">
@@ -425,7 +438,8 @@ export default function StreetLevelView({
           {usable.map((item, i) => {
             const list = hazardsByFrame[i] ?? [];
             const severe = list.some((h) => SEVERE.has(h.category));
-            const tone = list.length === 0 ? "clear" : severe ? "severe" : "warn";
+            const tone =
+              list.length === 0 ? "clear" : severe ? "severe" : "warn";
             return (
               <button
                 key={item.id}
@@ -443,16 +457,6 @@ export default function StreetLevelView({
           })}
         </div>
       )}
-
-      <footer className="street-view-foot">
-        <span>{metadata?.attribution ?? "Imagery © KartaView contributors"}</span>
-        {externalUrl && (
-          <a href={externalUrl} target="_blank" rel="noreferrer">
-            Street View
-            <ArrowSquareOut size={12} weight="bold" aria-hidden="true" />
-          </a>
-        )}
-      </footer>
     </section>
   );
 }

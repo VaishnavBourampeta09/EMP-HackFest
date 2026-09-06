@@ -135,15 +135,9 @@ function normalizeItinerary(itinerary, routeIndex, origin, destination) {
   const durationSeconds = Math.round(itinerary.duration || 0);
   const distanceMeters = legs.reduce((total, leg) => total + leg.distanceMeters, 0);
 
-  const headline = transitLegs
-    .map((leg) => leg.routeName)
-    .filter(Boolean)
-    .join(' + ');
-
   return {
     id: `transitous-transit-${routeIndex + 1}`,
     routeId: `transitous-transit-${routeIndex + 1}`,
-    label: headline || (routeIndex === 0 ? 'Best transit route' : `Transit option ${routeIndex + 1}`),
     mode: 'transit',
     provider: 'transitous',
     origin,

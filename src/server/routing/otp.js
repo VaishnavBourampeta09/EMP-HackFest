@@ -226,7 +226,6 @@ function normalizeItinerary(itinerary, routeIndex, origin, destination) {
   return {
     id: `otp-transit-${routeIndex + 1}`,
     routeId: `otp-transit-${routeIndex + 1}`,
-    label: routeIndex === 0 ? 'Best transit route' : `Transit alternative ${routeIndex + 1}`,
     mode: 'transit',
     provider: 'opentripplanner',
     origin,

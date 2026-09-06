@@ -14,12 +14,15 @@ export default function ProductStory({ onPlanClick }) {
             <BrandMark variant="glyph" />
             <span>Sentinel</span>
           </a>
-          <p>Maps get you home. Sentinel makes sure you get home safely.</p>
-          <div className="story-footer-tech" role="group" aria-label="Built with">
-            <span>MapLibre</span>
-            <span>OpenTripPlanner</span>
-            <span>PostGIS</span>
-          </div>
+          <ul className="story-footer-list" aria-label="Features">
+            <li>Local route context</li>
+            <li>Trip-scoped sharing</li>
+          </ul>
+          <ul className="story-footer-tech" aria-label="Built with">
+            <li>OpenStreetMap</li>
+            <li>Valhalla</li>
+            <li>Transitous</li>
+          </ul>
         </div>
       </footer>
     </div>

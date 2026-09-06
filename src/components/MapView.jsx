@@ -10,6 +10,7 @@ import {
 } from "react-leaflet";
 import L from "leaflet";
 import { formatMinutes } from "../logic/duration.js";
+import { isRiskyIncident } from "../logic/safetyInsights.js";
 
 const DEFAULT_CENTER = [47.6815, -122.128];
 const MAX_FIT_ZOOM = 16;
@@ -62,14 +63,7 @@ function hazardDivIcon(color, severity, type) {
   });
 }
 
-const ROUTE_COLORS = {
-  Fastest: "#e2564a",
-  Balanced: "#d99524",
-  Safer: "#1b52c0",
-  "Direct 221": "#1b52c0",
-  "Fastest 250": "#e2564a",
-  "221 + 250": "#d99524",
-};
+const ROUTE_COLORS = ["#1b52c0", "#d99524", "#e2564a"];
 
 function isFiniteNumber(value) {
   return value !== null && value !== "" && Number.isFinite(Number(value));
@@ -80,12 +74,7 @@ function isLatLng(point) {
   if (!isFiniteNumber(point[0]) || !isFiniteNumber(point[1])) return false;
   const lat = Number(point[0]);
   const lng = Number(point[1]);
-  return (
-    lat >= -90 &&
-    lat <= 90 &&
-    lng >= -180 &&
-    lng <= 180
-  );
+  return lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180;
 }
 
 function normalizeLatLng(point) {
@@ -97,12 +86,7 @@ function isGeoJsonCoordinate(point) {
   if (!isFiniteNumber(point[0]) || !isFiniteNumber(point[1])) return false;
   const lng = Number(point[0]);
   const lat = Number(point[1]);
-  return (
-    lat >= -90 &&
-    lat <= 90 &&
-    lng >= -180 &&
-    lng <= 180
-  );
+  return lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180;
 }
 
 function routePoints(route) {
@@ -214,7 +198,9 @@ function MapViewport({
     [routePositions],
   );
   const viewportPoints = useMemo(() => {
-    const points = flattenedRoutes.length ? [...flattenedRoutes] : [...cleanTrail];
+    const points = flattenedRoutes.length
+      ? [...flattenedRoutes]
+      : [...cleanTrail];
     if (teenPoint) points.push(teenPoint);
     return points;
   }, [cleanTrail, flattenedRoutes, teenPoint]);
@@ -286,14 +272,14 @@ function MapViewport({
   return null;
 }
 
-function RouteLine({ route, positions, state, onRouteSelect }) {
+function RouteLine({ route, positions, state, onRouteSelect, index = 0 }) {
   const lineRef = useRef(null);
   const hitAreaRef = useRef(null);
   const isSelected = state === "selected";
   const isUnselected = state === "unselected";
   const isInteractive = typeof onRouteSelect === "function";
-  const color = route.color || ROUTE_COLORS[route.label] || "#1b52c0";
-  const routeName = route.label ? `${route.label} route` : "Route option";
+  const color = route.color || ROUTE_COLORS[index % ROUTE_COLORS.length];
+  const routeName = "Route option";
   const detail = [
     isFiniteNumber(route.durationMinutes)
       ? formatMinutes(route.durationMinutes, { long: true })
@@ -390,7 +376,9 @@ function RouteLine({ route, positions, state, onRouteSelect }) {
       >
         <Tooltip sticky className="map-route-tooltip">
           <strong>{routeName}</strong>
-          {detail && <span className="map-route-tooltip__detail"> · {detail}</span>}
+          {detail && (
+            <span className="map-route-tooltip__detail"> · {detail}</span>
+          )}
         </Tooltip>
       </Polyline>
     </>
@@ -469,15 +457,18 @@ function FactorMarker({ factor }) {
 }
 
 function TransitRouteDetail({ route }) {
-  const legs = (route.legs || []).map((leg, index) => ({
-    leg,
-    index,
-    positions: routePoints({ points: leg.waypoints, geometry: leg.geometry }),
-  })).filter(({ positions }) => positions.length > 1);
+  const legs = (route.legs || [])
+    .map((leg, index) => ({
+      leg,
+      index,
+      positions: routePoints({ points: leg.waypoints, geometry: leg.geometry }),
+    }))
+    .filter(({ positions }) => positions.length > 1);
   const transitStops = [];
 
   legs.forEach(({ leg, positions, index }) => {
-    const isTransit = String(leg.type || leg.mode).toLowerCase() === "transit" ||
+    const isTransit =
+      String(leg.type || leg.mode).toLowerCase() === "transit" ||
       !["walk", "walking"].includes(String(leg.mode).toLowerCase());
     if (!isTransit) return;
     transitStops.push({
@@ -516,7 +507,9 @@ function TransitRouteDetail({ route }) {
               lineJoin: "round",
               opacity: 1,
               weight: isWalking ? 5 : 8,
-              className: isWalking ? "map-transit-walk-leg" : "map-transit-ride-leg",
+              className: isWalking
+                ? "map-transit-walk-leg"
+                : "map-transit-ride-leg",
             }}
           />
         );
@@ -620,7 +613,8 @@ function MapLegend({ factors, routes, activeRouteId }) {
   const selectedRoute = routes.find(
     ({ route }) => route.routeId === activeRouteId,
   )?.route;
-  const displayRoute = selectedRoute || (routes.length === 1 ? routes[0].route : null);
+  const displayRoute =
+    selectedRoute || (routes.length === 1 ? routes[0].route : null);
   const hasLiveIncidents = factors.some((factor) =>
     String(factor.source || "").includes("City of Redmond"),
   );
@@ -637,28 +631,6 @@ function MapLegend({ factors, routes, activeRouteId }) {
 
   return (
     <>
-      {routes.length > 0 && (
-        <div className="map-route-status leaflet-top leaflet-left">
-          <div
-            className="map-route-status__panel leaflet-control"
-            role="status"
-            aria-live="polite"
-          >
-            <span className="map-route-status__label">
-              {displayRoute ? "Route in view" : `${routes.length} route options`}
-            </span>
-            {displayRoute && (
-              <strong className="map-route-status__value">
-                {displayRoute.label || "Selected"}
-                {isFiniteNumber(displayRoute.durationMinutes)
-                  ? ` · ${formatMinutes(displayRoute.durationMinutes)}`
-                  : ""}
-              </strong>
-            )}
-          </div>
-        </div>
-      )}
-
       <aside
         className="map-legend leaflet-bottom leaflet-right"
         aria-label="Map legend and data sources"
@@ -667,63 +639,7 @@ function MapLegend({ factors, routes, activeRouteId }) {
         onPointerDown={stopPropagation}
         onTouchStart={stopPropagation}
         onWheel={stopPropagation}
-      >
-        <div className="map-legend__panel leaflet-control">
-          {(presentFactorTypes.length > 0 || routes.length > 1 || displayRoute?.mode === "transit") && (
-            <>
-              <strong className="map-legend__title">Map key</strong>
-              <ul className="map-legend__list">
-                {routes.length > 1 && (
-                  <>
-                    <li className="map-legend__item">
-                      <span
-                        className="map-legend__route-line map-legend__route-line--selected"
-                        aria-hidden="true"
-                      />
-                      Selected route
-                    </li>
-                    <li className="map-legend__item">
-                      <span
-                        className="map-legend__route-line map-legend__route-line--alternative"
-                        aria-hidden="true"
-                      />
-                      Other route
-                    </li>
-                  </>
-                )}
-                {displayRoute?.mode === "transit" && (
-                  <>
-                    <li className="map-legend__item">
-                      <span className="map-legend__transit-line" aria-hidden="true" />
-                      Transit ride
-                    </li>
-                    <li className="map-legend__item">
-                      <span className="map-legend__walk-line" aria-hidden="true" />
-                      Access walking
-                    </li>
-                  </>
-                )}
-                {presentFactorTypes.map(([type, style]) => (
-                  <li className="map-legend__item" key={type}>
-                    <span
-                      className={`map-legend__factor map-legend__factor--${type}`}
-                      style={{ backgroundColor: style.color }}
-                      aria-hidden="true"
-                    />
-                    {style.label}
-                  </li>
-                ))}
-              </ul>
-            </>
-          )}
-          <span
-            className="map-legend__source"
-            title={sourceNames.length ? sourceNames.join("; ") : sourceLabel}
-          >
-            {sourceLabel}
-          </span>
-        </div>
-      </aside>
+      ></aside>
     </>
   );
 }
@@ -755,7 +671,8 @@ export default function MapView({
         .filter(({ positions }) => positions.length > 1),
     [routes],
   );
-  const hasSelectedRoute = activeRouteId !== undefined && activeRouteId !== null;
+  const hasSelectedRoute =
+    activeRouteId !== undefined && activeRouteId !== null;
   const orderedRoutes = useMemo(
     () =>
       [...preparedRoutes].sort((a, b) => {
@@ -780,7 +697,11 @@ export default function MapView({
     return points;
   }, [cleanTrail, routePositions, teenLocation]);
   const objectiveFactors = useMemo(
-    () => zones.filter((factor) => isLatLng([factor?.lat, factor?.lng])),
+    () =>
+      zones.filter(
+        (factor) =>
+          isLatLng([factor?.lat, factor?.lng]) && isRiskyIncident(factor),
+      ),
     [zones],
   );
   const validPlaces = useMemo(
@@ -850,14 +771,21 @@ export default function MapView({
               positions={positions}
               state={state}
               onRouteSelect={onRouteSelect}
+              index={index}
             />
           );
         })}
 
         {orderedRoutes
-          .filter(({ route }) => route.routeId === activeRouteId && route.mode === "transit")
+          .filter(
+            ({ route }) =>
+              route.routeId === activeRouteId && route.mode === "transit",
+          )
           .map(({ route }) => (
-            <TransitRouteDetail key={`${route.routeId}-transit-detail`} route={route} />
+            <TransitRouteDetail
+              key={`${route.routeId}-transit-detail`}
+              route={route}
+            />
           ))}
 
         {cleanTrail.length > 1 && (

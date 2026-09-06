@@ -71,6 +71,8 @@ async function searchMapbox(query, { limit, language }) {
   url.searchParams.set('autocomplete', 'false');
   url.searchParams.set('limit', String(limit));
   url.searchParams.set('language', language);
+  url.searchParams.set('bbox', '-122.24,47.62,-122.05,47.76');
+  url.searchParams.set('proximity', '-122.1215,47.674');
 
   const payload = await fetchJson('Mapbox Geocoding', url);
   return (payload?.features || []).flatMap((feature) => {
@@ -100,6 +102,8 @@ async function searchNominatim(query, { limit, language }) {
   url.searchParams.set('addressdetails', '1');
   url.searchParams.set('limit', String(limit));
   url.searchParams.set('accept-language', language);
+  url.searchParams.set('viewbox', '-122.24,47.76,-122.05,47.62');
+  url.searchParams.set('bounded', '1');
 
   const payload = await serializedNominatimRequest(() =>
     fetchJson('Nominatim', url, {

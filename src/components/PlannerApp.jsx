@@ -63,7 +63,10 @@ export default function PlannerApp() {
             lastTickAt: Date.now(),
           },
         });
-        pushLocation(current.location, { speed: 0, elapsedSeconds: TICK_SECONDS });
+        pushLocation(current.location, {
+          speed: 0,
+          elapsedSeconds: TICK_SECONDS,
+        });
         return;
       }
 
@@ -85,7 +88,10 @@ export default function PlannerApp() {
           lastTickAt: Date.now(),
         },
       });
-      pushLocation(path[nextIndex], { speed: 1.4, elapsedSeconds: TICK_SECONDS });
+      pushLocation(path[nextIndex], {
+        speed: 1.4,
+        elapsedSeconds: TICK_SECONDS,
+      });
     }, 1000);
     return () => window.clearInterval(id);
   }, []);
@@ -141,13 +147,14 @@ export default function PlannerApp() {
           </div>
 
           <div className="planner-nav-status" aria-live="polite">
-            <span className={active ? "status-orb status-orb-live" : "status-orb"} />
+            <span
+              className={active ? "status-orb status-orb-live" : "status-orb"}
+            />
             <span>{active ? "Trip active" : "Ready to plan"}</span>
           </div>
         </nav>
       </header>
 
-      {/* Full-viewport map canvas — each screen renders the map as base layer */}
       <main className="planner-map-main" aria-label="Trip planner">
         {mode === "teen" ? <TeenTripScreen /> : <ParentDashboard />}
       </main>

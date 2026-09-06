@@ -63,6 +63,6 @@ export function scoreSafety(route, incidents = [], segments = [], safetyMode = '
 export function rankSafety(routes) {
   const fastest = Math.min(...routes.map(route => route.durationMinutes));
   return [...routes].sort((a, b) => (b.safetyScore ?? -1) - (a.safetyScore ?? -1) || a.durationMinutes - b.durationMinutes)
-    .map((route, index) => ({ ...route, label: `Route ${String.fromCharCode(65 + index)}`, rank: index + 1,
+    .map((route, index) => ({ ...route, rank: index + 1,
       recommended: index === 0 && route.safetyScore !== null, timeDeltaMinutes: route.durationMinutes - fastest }));
 }

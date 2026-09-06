@@ -40,7 +40,7 @@ function normalizeTrip(trip, index, origin, destination) {
   if (points.length < 2) throw new RoutingProviderError('Valhalla', 'No walkable route geometry was returned.');
   return {
     id: `valhalla-walking-${index + 1}`, routeId: `valhalla-walking-${index + 1}`,
-    label: `Route ${String.fromCharCode(65 + index)}`, mode: 'walking', provider: 'valhalla',
+    mode: 'walking', provider: 'valhalla',
     origin, destination,
     durationSeconds: Math.round(trip.summary?.time || 0),
     durationMinutes: Math.max(1, Math.round((trip.summary?.time || 0) / 60)),

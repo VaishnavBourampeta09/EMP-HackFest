@@ -16,7 +16,10 @@ export function incidentsNearRoute(incidents = [], route, options = {}) {
   if (points.length === 0) return [];
 
   return incidents
-    .filter((incident) => Number.isFinite(incident?.lat) && Number.isFinite(incident?.lng))
+    .filter(
+      (incident) =>
+        Number.isFinite(incident?.lat) && Number.isFinite(incident?.lng),
+    )
     .map((incident) => ({
       ...incident,
       distanceMeters: Math.round(
@@ -38,130 +41,29 @@ export function incidentsNearRoute(incidents = [], route, options = {}) {
 
 const SEVERE_CATEGORIES = new Set(["violent_crime", "collision"]);
 
-/**
- * Plain-language warnings for the selected route. Each one names a concrete,
- * checkable condition rather than a vague risk label.
- */
-export function routeWarnings(route, nearbyIncidents = [], options = {}) {
-  const { afterDark = false, alternatives = [] } = options;
-  const warnings = [];
-
-  const severeRecent = nearbyIncidents.filter(
-    (incident) =>
-      SEVERE_CATEGORIES.has(incident.category) && (incident.recencyDays ?? 999) <= 30,
+/** Events that deserve an on-map warning, rather than background context. */
+export function isRiskyIncident(incident) {
+  return (
+    SEVERE_CATEGORIES.has(incident?.category) ||
+    Number(incident?.severity ?? 0) >= 4
   );
-  if (severeRecent.length > 0) {
-    const closest = severeRecent.reduce((a, b) =>
-      a.distanceMeters <= b.distanceMeters ? a : b,
-    );
-    warnings.push({
-      id: "severe-recent",
-      level: "high",
-      title: `${severeRecent.length} serious incident${severeRecent.length === 1 ? "" : "s"} reported in the last month`,
-      detail: `Closest is ${closest.categoryLabel?.toLowerCase() ?? "an incident"} about ${closest.distanceMeters} m from your path near ${closest.generalizedLocation ?? "this route"}.`,
-    });
-  }
-
-  const veryClose = nearbyIncidents.filter((incident) => incident.distanceMeters <= 80);
-  if (veryClose.length >= 3) {
-    warnings.push({
-      id: "clustered",
-      level: "medium",
-      title: `${veryClose.length} reports sit directly on this path`,
-      detail:
-        "This route passes within about a block of several mapped reports. A slightly longer option may avoid the cluster.",
-    });
-  }
-
-  if (afterDark) {
-    warnings.push({
-      id: "after-dark",
-      level: "medium",
-      title: "Travelling after dark",
-      detail:
-        "Night scoring uses incidents and lighting equally. Unknown lighting stays neutral.",
-    });
-  }
-
-  const better = alternatives.find(
-    (candidate) =>
-      candidate.routeId !== route?.routeId &&
-      (candidate.safetyScore ?? 0) > (route?.safetyScore ?? 0) + 2,
-  );
-  if (better) {
-    const extra = Math.max(
-      0,
-      Math.round((better.durationMinutes ?? 0) - (route?.durationMinutes ?? 0)),
-    );
-    warnings.push({
-      id: "better-option",
-      level: "info",
-      title: `"${better.label}" scores ${better.safetyScore} vs ${route?.safetyScore}`,
-      detail:
-        extra > 0
-          ? `It costs about ${extra} more minute${extra === 1 ? "" : "s"} of walking.`
-          : "It takes about the same time.",
-    });
-  }
-
-  if (warnings.length === 0) {
-    warnings.push({
-      id: "clear",
-      level: "clear",
-      title: "No standout hazards on this route",
-      detail:
-        "No standout mapped incident warnings were found. Missing reports or lighting data do not establish safety.",
-    });
-  }
-
-  return warnings;
 }
 
 /** Nearest staffed or familiar place a rider could divert to. */
 export function nearestSafePlaces(places = [], location, limit = 3) {
   if (!Array.isArray(location) || location.length < 2) return [];
   return places
-    .filter((place) => Number.isFinite(place?.lat) && Number.isFinite(place?.lng))
+    .filter(
+      (place) => Number.isFinite(place?.lat) && Number.isFinite(place?.lng),
+    )
     .map((place) => ({
       ...place,
-      distanceMeters: Math.round(haversineMeters(location, [place.lat, place.lng])),
+      distanceMeters: Math.round(
+        haversineMeters(location, [place.lat, place.lng]),
+      ),
     }))
     .sort((a, b) => a.distanceMeters - b.distanceMeters)
     .slice(0, limit);
-}
-
-/** Side-by-side rows for the route comparison table. */
-export function compareRoutes(routes = [], incidents = []) {
-  if (routes.length === 0) return [];
-  const best = routes.reduce((a, b) =>
-    (a.safetyScore ?? 0) >= (b.safetyScore ?? 0) ? a : b,
-  );
-  const fastest = routes.reduce((a, b) =>
-    (a.durationMinutes ?? Infinity) <= (b.durationMinutes ?? Infinity) ? a : b,
-  );
-
-  return routes.map((route) => {
-    const near = incidentsNearRoute(incidents, route, {
-      withinMeters: 150,
-      limit: 500,
-    });
-    return {
-      routeId: route.routeId,
-      label: route.label,
-      safetyScore: route.safetyScore ?? 0,
-      durationMinutes: route.durationMinutes ?? 0,
-      distanceKm: route.distanceKm ?? 0,
-      incidentsOnPath: near.length,
-      seriousOnPath: near.filter((i) => SEVERE_CATEGORIES.has(i.category)).length,
-      recommended: Boolean(route.recommended),
-      isSafest: route.routeId === best.routeId,
-      isFastest: route.routeId === fastest.routeId,
-      minutesSlowerThanFastest: Math.max(
-        0,
-        Math.round((route.durationMinutes ?? 0) - (fastest.durationMinutes ?? 0)),
-      ),
-    };
-  });
 }
 
 /** Counts by category for the "what's around here" summary. */
@@ -174,7 +76,7 @@ export function summarizeIncidents(incidents = []) {
     const key = incident.categoryLabel || incident.category || "Other";
     byCategory.set(key, (byCategory.get(key) ?? 0) + 1);
     if ((incident.recencyDays ?? 999) <= 7) lastWeek += 1;
-    if (SEVERE_CATEGORIES.has(incident.category)) serious += 1;
+    if (isRiskyIncident(incident)) serious += 1;
   }
 
   return {
@@ -186,7 +88,6 @@ export function summarizeIncidents(incidents = []) {
       .sort((a, b) => b.count - a.count),
   };
 }
-
 
 /**
  * Geocoders return the full postal chain — "Downtown Redmond, Northeast 76th
@@ -221,16 +122,18 @@ export function routeDangerSummary(route, incidents = []) {
     return { level: "clear", text: "No recent reports within 250 m" };
   }
 
-  const serious = near.filter((incident) => SEVERE_CATEGORIES.has(incident.category));
+  const serious = near.filter((incident) =>
+    SEVERE_CATEGORIES.has(incident.category),
+  );
   const worst = (serious.length > 0 ? serious : near)[0];
-  const label = (worst.categoryLabel || worst.description || "incident").toLowerCase();
+  const label = worst.categoryLabel || worst.description || "incident";
   const others = near.length - 1;
 
   return {
     level: serious.length > 0 ? "high" : "medium",
     text:
       others > 0
-        ? `${label}, ${worst.distanceMeters} m away · +${others} more nearby`
+        ? `${label}, ${worst.distanceMeters} m away`
         : `${label}, ${worst.distanceMeters} m away`,
   };
 }
