@@ -24,6 +24,8 @@ import RouteCard from "./RouteCard.jsx";
 import CheckinSheet from "./CheckinSheet.jsx";
 import SafetyAlertsPanel from "./SafetyAlertsPanel.jsx";
 import RouteComparisonInfo from "./RouteComparisonInfo.jsx";
+import LocationPermissionPrompt from "./LocationPermissionPrompt.jsx";
+import SimulationModeBanner from "./SimulationModeBanner.jsx";
 import {
   startTrip,
   endTrip,
@@ -267,6 +269,12 @@ function ActiveTripView({ trip, checkin, locationUpdates, simulation }) {
       </div>
 
       <aside className="sidebar-float active-sidebar-float">
+        {/* Simulation mode indicator */}
+        <SimulationModeBanner
+          isRunning={simulation.running}
+          isStopped={simulation.stopped}
+        />
+
         <div className="active-trip-topline">
           <div className="live-indicator">
             <span />
@@ -603,6 +611,13 @@ export default function TeenTripScreen() {
 
       {/* Floating left sidebar */}
       <aside className="sidebar-float">
+        {/* Location permission prompt */}
+        <LocationPermissionPrompt
+          onPermissionRequested={(status) => {
+            // Could store in state if needed for future use
+          }}
+        />
+
         <div className="planner-sidebar-head">
           <p>Where are you going?</p>
           <h2>Plan your trip</h2>
