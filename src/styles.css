@@ -33,7 +33,6 @@
   color-scheme: light;
 }
 
-
 * {
   box-sizing: border-box;
 }
@@ -127,7 +126,7 @@ h4 {
   margin: 0 auto;
   padding: 10px var(--page-gutter);
   display: grid;
-  grid-template-columns: auto 1fr auto;
+  grid-template-columns: auto 1fr;
   align-items: center;
   gap: clamp(16px, 4vw, 40px);
   color: var(--text);
@@ -180,8 +179,6 @@ h4 {
   stroke-linecap: round;
   stroke-linejoin: round;
 }
-
-
 
 .brand-name {
   font-size: 17px;
@@ -303,30 +300,6 @@ h4 {
   border-radius: 50%;
 }
 
-/* --------------------------------------------------------------- hero ---- */
-
-.hero {
-  width: 100%;
-  padding: clamp(40px, 4.5vw, 64px) 0 0;
-  color: var(--text);
-  background: var(--paper);
-  border-bottom: 1px solid var(--line);
-}
-
-.hero-copy {
-  min-width: 0;
-}
-
-.hero-grid {
-  width: min(var(--page-max), 100%);
-  margin: 0 auto;
-  padding-inline: var(--page-gutter);
-  display: grid;
-  grid-template-columns: minmax(0, 1.05fr) minmax(320px, 0.95fr);
-  align-items: start;
-  gap: clamp(40px, 5vw, 76px);
-}
-
 .hero-overline,
 .section-kicker,
 .story-eyebrow {
@@ -337,79 +310,12 @@ h4 {
   text-transform: uppercase;
 }
 
-.hero-title {
-  max-width: 15ch;
-  margin-top: 20px;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  font-size: clamp(2.5rem, 4.4vw, 3.9rem);
-  font-weight: 600;
-  line-height: 1.04;
-  letter-spacing: -0.035em;
-}
-
-.hero-title span {
-  max-width: 20ch;
-  color: var(--muted);
-  font-weight: 500;
-}
-
 .hero-description {
   max-width: 52ch;
   margin-top: 26px;
   color: var(--muted);
   font-size: 17px;
   line-height: 1.6;
-}
-
-.hero-actions {
-  margin-top: 32px;
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 10px;
-}
-
-.hero-stats {
-  width: min(var(--page-max), 100%);
-  margin: clamp(30px, 3vw, 44px) auto 0;
-  padding-inline: var(--page-gutter);
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  list-style: none;
-  border-top: 1px solid var(--line);
-}
-
-.hero-stats li {
-  padding: 18px clamp(16px, 2vw, 26px) 22px;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.hero-stats li + li {
-  border-left: 1px solid var(--line);
-}
-
-.hero-stats li:first-child {
-  padding-left: 0;
-}
-
-.hero-stats li:last-child {
-  padding-right: 0;
-}
-
-.hero-stats strong {
-  font-size: 22px;
-  font-weight: 600;
-  letter-spacing: -0.02em;
-}
-
-.hero-stats span {
-  color: var(--muted);
-  font-size: 14px;
-  line-height: 1.45;
 }
 
 /* ------------------------------------------------------------ buttons ---- */
@@ -522,136 +428,6 @@ h4 {
   cursor: pointer;
 }
 
-/* --------------------------------------------------- hero route panel ---- */
-
-.hero-panel {
-  min-width: 0;
-  padding: clamp(20px, 2.2vw, 28px);
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-  background: var(--paper-bright);
-  border: 1px solid var(--line-strong);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow);
-}
-
-.hero-panel-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding-bottom: 16px;
-  border-bottom: 1px solid var(--line);
-}
-
-.hero-panel-eyebrow {
-  color: var(--muted);
-  font-size: 13px;
-  font-weight: 500;
-}
-
-.hero-panel-chip {
-  padding: 4px 9px;
-  color: var(--brand-deep);
-  background: rgba(27, 82, 192, 0.1);
-  border-radius: var(--radius-sm);
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-}
-
-.hero-route {
-  display: grid;
-}
-
-.hero-route-point {
-  display: grid;
-  grid-template-columns: 12px minmax(0, 1fr);
-  align-items: start;
-  gap: 12px;
-}
-
-.hero-route-point > div {
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.hero-route-point span {
-  color: var(--muted);
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.07em;
-  text-transform: uppercase;
-}
-
-.hero-route-point strong {
-  font-size: 15px;
-  font-weight: 600;
-}
-
-.hero-route-dot {
-  width: 11px;
-  height: 11px;
-  margin-top: 4px;
-  border: 2px solid var(--brand);
-  border-radius: 50%;
-  background: var(--paper-bright);
-}
-
-.hero-route-dot-end {
-  border-color: var(--teal);
-  background: var(--teal);
-}
-
-.hero-route-connector {
-  width: 1px;
-  height: 26px;
-  margin: 4px 0 4px 5px;
-  background: var(--line-strong);
-}
-
-.hero-panel-metrics {
-  margin: 0;
-  overflow: hidden;
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  border: 1px solid var(--line);
-  border-radius: var(--radius-md);
-}
-
-.hero-panel-metrics > div {
-  padding: 13px 14px;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.hero-panel-metrics > div + div {
-  border-left: 1px solid var(--line);
-}
-
-.hero-panel-metrics dt {
-  color: var(--muted);
-  font-size: 12px;
-}
-
-.hero-panel-metrics dd {
-  margin: 0;
-  font-size: 19px;
-  font-weight: 600;
-  letter-spacing: -0.02em;
-}
-
-.hero-panel-reason {
-  color: var(--muted);
-  font-size: 14px;
-  line-height: 1.55;
-}
-
 .hero-panel-privacy {
   padding-top: 16px;
   display: flex;
@@ -677,7 +453,7 @@ h4 {
   position: fixed;
   inset: 0;
   overflow: hidden;
-  background: #e0e3e5;
+  background: var(--ink);
 }
 
 /* Floating glassmorphic nav header */
@@ -720,12 +496,13 @@ h4 {
 
 /* Floating simulator controls — top-right corner */
 .planner-shell {
-  --map-key-top: 14px;
+  --nav-height: 61px;
+  --map-key-top: calc(var(--nav-height) + 14px);
   /* Clears the floating sidebar (left 16px + 370px wide). */
   --sidebar-width: 396px;
   --overlay-left: 428px;
   /* Clears the fixed nav bar. */
-  --overlay-top: 80px;
+  --overlay-top: calc(var(--nav-height) + 16px);
 }
 
 .simulator-float {
@@ -1769,7 +1546,6 @@ h4 {
 .map-condition-score {
   flex: 0 0 auto;
 }
-
 
 .sheet-backdrop {
   position: fixed;
@@ -3015,7 +2791,8 @@ h4 {
 }
 
 .map-legend {
-  margin: var(--map-key-top, 14px) 14px 0 0;
+  /* Clears the recenter button stacked below it. */
+  margin: 0 14px 66px 0;
 }
 
 .map-legend__panel {
@@ -3556,8 +3333,8 @@ h4 {
 
 @media (max-width: 1220px) {
   .sidebar-float,
-  .sidebar-float.active-sidebar-float,
-  .sidebar-float.guardian-float {
+.sidebar-float.active-sidebar-float,
+.sidebar-float.guardian-float {
     width: 340px;
   }
 
@@ -3581,8 +3358,8 @@ h4 {
   }
 
   .sidebar-float,
-  .sidebar-float.active-sidebar-float,
-  .sidebar-float.guardian-float {
+.sidebar-float.active-sidebar-float,
+.sidebar-float.guardian-float {
     width: 310px;
   }
 
@@ -3615,10 +3392,11 @@ h4 {
     padding: 0;
   }
 
-  /* On tablet/mobile, sidebar slides to a bottom sheet */
+  /* On tablet/mobile,
+sidebar slides to a bottom sheet */
   .sidebar-float,
-  .sidebar-float.active-sidebar-float,
-  .sidebar-float.guardian-float {
+.sidebar-float.active-sidebar-float,
+.sidebar-float.guardian-float {
     top: auto;
     left: 8px;
     right: 8px;
@@ -3633,8 +3411,8 @@ h4 {
   }
 
   .map-trip-chip,
-  .map-selection-summary,
-  .guardian-map-card {
+.map-selection-summary,
+.guardian-map-card {
     bottom: calc(55vh + 20px);
   }
 
@@ -3701,7 +3479,7 @@ h4 {
   }
 
   .map-legend {
-    margin: 10px 10px 0 0;
+    margin: 0 10px 62px 0;
   }
 
   .map-legend__title,
@@ -3795,7 +3573,8 @@ h4 {
   }
 }
 
-/* --------------------------------------------- homepage + chrome, small --- */
+/* --------------------------------------------- homepage + chrome,
+small --- */
 
 @media (max-width: 1080px) {
   .hero-grid {
@@ -3819,7 +3598,7 @@ h4 {
 
 @media (max-width: 1020px) {
   .nav-links,
-  .planner-back-link {
+.planner-back-link {
     display: none;
   }
 
@@ -3828,7 +3607,7 @@ h4 {
   }
 
   .nav-planner-link,
-  .mode-toggle {
+.mode-toggle {
     grid-column: 2;
   }
 }
@@ -3845,27 +3624,13 @@ h4 {
   }
 
   .story-grid,
-  .story-factor-grid,
-  .story-outcome-pair {
+.story-factor-grid,
+.story-outcome-pair {
     grid-template-columns: minmax(0, 1fr);
   }
 
   .story-sequence {
     grid-template-columns: minmax(0, 1fr);
-  }
-
-  .hero-stats {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  .hero-stats li {
-    padding-right: 0;
-    padding-left: 0;
-  }
-
-  .hero-stats li + li {
-    border-top: 1px solid var(--line);
-    border-left: 0;
   }
 
   .story-footer-inner {
@@ -3882,45 +3647,19 @@ h4 {
 }
 
 @media (max-width: 620px) {
-  .hero {
-    padding-top: 48px;
-  }
-
-  .hero-title {
-    max-width: none;
-    font-size: clamp(2rem, 8.5vw, 2.6rem);
-  }
-
-  .hero-title span {
-    max-width: none;
-  }
 
   .hero-description {
     font-size: 16px;
   }
 
-  .hero-actions {
-    align-items: stretch;
-    flex-direction: column;
-  }
-
   .hero-actions .button,
-  .story-closing-actions .button {
+.story-closing-actions .button {
     width: 100%;
   }
 
   .story-closing-actions {
     align-items: stretch;
     flex-direction: column;
-  }
-
-  .hero-panel-metrics {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  .hero-panel-metrics > div + div {
-    border-top: 1px solid var(--line);
-    border-left: 0;
   }
 
   .story-weight-row {
@@ -3987,7 +3726,8 @@ h4 {
   background: rgba(23, 163, 124, 0.13);
 }
 
-/* Two stops on one rail, read top to bottom. */
+/* Two stops on one rail,
+read top to bottom. */
 .journey-route {
   margin: 0 0 14px;
   padding: 0;
@@ -4417,7 +4157,6 @@ h4 {
   border-top: 1px solid #f5e6df;
 }
 
-
 /* ===================================================== danger box ======== */
 
 .danger-box {
@@ -4788,7 +4527,6 @@ h4 {
 
 .street-view-external:hover { text-decoration: underline; }
 
-
 .street-view-loading {
   position: absolute;
   inset: 0;
@@ -5028,12 +4766,11 @@ h4 {
   padding: clamp(44px, 4.5vw, 68px) var(--page-gutter);
 }
 
-.crime-head { max-width: 66ch; }
-
 .crime-eyebrow {
-  display: inline-flex;
+  display: flex;
   align-items: center;
   gap: 7px;
+  line-height: 1.35;
   color: #ff9c91;
 }
 
@@ -5045,428 +4782,68 @@ h4 {
   box-shadow: 0 0 0 3px rgba(226, 86, 74, 0.24);
 }
 
-.crime-head h2 {
-  margin-top: 16px;
-  font-size: clamp(2.25rem, 4vw, 3.4rem);
-  font-weight: 600;
-  line-height: 1.06;
-  letter-spacing: -0.032em;
-  text-wrap: balance;
-}
-
-.crime-lede {
-  max-width: 60ch;
-  margin-top: 18px;
-  color: rgba(232, 240, 251, 0.68);
-  font-size: 17px;
-  line-height: 1.6;
-}
-
-.crime-grid {
-  margin-top: clamp(22px, 2.4vw, 32px);
-  display: grid;
-  grid-template-columns: minmax(0, 1.35fr) minmax(260px, 0.65fr);
-  gap: 16px;
-  align-items: start;
-}
-
-.crime-headline-card {
-  padding: clamp(20px, 2.4vw, 28px);
-  display: grid;
-  gap: 16px;
-  border: 1px solid rgba(226, 86, 74, 0.34);
-  border-left: 3px solid var(--coral);
-  border-radius: var(--radius-lg);
-  background: rgba(226, 86, 74, 0.07);
-}
-
-.crime-loading { color: rgba(232, 240, 251, 0.6); font-size: 14px; }
-
-.crime-headline-top {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
-  align-items: start;
-  gap: 12px;
-}
-
-.crime-headline-icon {
-  width: 36px;
-  height: 36px;
-  display: grid;
-  place-items: center;
-  color: #fff;
-  background: var(--coral);
-  border-radius: var(--radius-sm);
-}
-
-.crime-headline-kicker {
-  color: #ff9c91;
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.09em;
-  text-transform: uppercase;
-}
-
-.crime-headline-title {
-  display: block;
-  margin-top: 3px;
-  font-size: 19px;
-  font-weight: 650;
-  letter-spacing: -0.02em;
-}
-
-.crime-headline-when {
-  padding: 4px 9px;
-  color: #ffd9d4;
-  background: rgba(226, 86, 74, 0.24);
-  border-radius: var(--radius-sm);
-  font-size: 11px;
-  font-weight: 700;
-  white-space: nowrap;
-}
-
-.crime-headline-facts {
-  margin: 0;
-  display: grid;
-  gap: 0;
-  border: 1px solid var(--line-dark);
-  border-radius: var(--radius-sm);
-  overflow: hidden;
-}
-
-.crime-headline-facts > div {
-  display: grid;
-  grid-template-columns: 108px minmax(0, 1fr);
-  gap: 12px;
-  padding: 10px 13px;
-}
-
-.crime-headline-facts > div + div { border-top: 1px solid var(--line-dark); }
-
-.crime-headline-facts dt {
-  color: rgba(232, 240, 251, 0.52);
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-}
-
-.crime-headline-facts dd { margin: 0; font-size: 13px; font-weight: 550; }
-.crime-severity { text-transform: capitalize; }
-
-.crime-headline-note {
-  color: rgba(232, 240, 251, 0.62);
-  font-size: 13px;
-  line-height: 1.55;
-}
-
-.crime-stats {
-  display: grid;
-  gap: 1px;
-  overflow: hidden;
-  border: 1px solid var(--line-dark);
-  border-radius: var(--radius-lg);
-  background: var(--line-dark);
-}
-
-.crime-stats > div {
-  padding: 18px 20px;
-  display: grid;
-  gap: 4px;
-  background: var(--ink-soft);
-}
-
-.crime-stats strong {
-  font-size: 30px;
-  font-weight: 600;
-  letter-spacing: -0.03em;
-  font-variant-numeric: tabular-nums;
-}
-
-.crime-stats span { color: rgba(232, 240, 251, 0.6); font-size: 13px; }
-
-.crime-feed {
-  margin-top: 14px;
-  padding: 16px clamp(16px, 2vw, 22px);
-  border: 1px solid var(--line-dark);
-  border-radius: var(--radius-lg);
-  background: var(--ink-soft);
-}
-
-.crime-feed-label {
-  margin-bottom: 10px;
-  color: rgba(232, 240, 251, 0.5);
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.09em;
-  text-transform: uppercase;
-}
-
-.crime-feed ul { margin: 0; padding: 0; list-style: none; }
-
-.crime-row {
-  display: grid;
-  grid-template-columns: auto minmax(120px, 0.9fr) minmax(0, 1.4fr) auto;
-  align-items: center;
-  gap: 12px;
-  padding: 9px 0;
-  font-size: 13px;
-}
-
-.crime-row + .crime-row { border-top: 1px solid var(--line-dark); }
-
-.crime-row-icon {
-  width: 24px;
-  height: 24px;
-  display: grid;
-  place-items: center;
-  border-radius: var(--radius-sm);
-}
-
 .crime-row-severe .crime-row-icon { color: #ffb3ab; background: rgba(226, 86, 74, 0.2); }
 .crime-row-warn .crime-row-icon { color: #f0c07a; background: rgba(217, 149, 36, 0.2); }
 .crime-row-info .crime-row-icon { color: #9dc4ff; background: rgba(27, 82, 192, 0.24); }
 
-.crime-row-type { font-weight: 600; }
-
-.crime-row-where {
-  overflow: hidden;
-  color: rgba(232, 240, 251, 0.6);
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.crime-row-when {
-  color: rgba(232, 240, 251, 0.5);
-  font-size: 12px;
-  white-space: nowrap;
-}
-
-.crime-foot {
-  margin-top: 18px;
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: 14px;
-}
-
-.crime-foot p { color: rgba(232, 240, 251, 0.5); font-size: 12px; }
-
-/* ============================================ escalation ladder ========= */
-
-.ladder-layout {
-  display: grid;
-  grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr);
-  gap: clamp(32px, 5vw, 72px);
-  align-items: start;
-}
-
-.ladder-intro h2 {
-  margin-top: 16px;
-  display: flex;
-  flex-direction: column;
-  font-size: clamp(2.4rem, 4.4vw, 3.6rem);
-  font-weight: 600;
-  line-height: 1.04;
-  letter-spacing: -0.034em;
-}
-
-.ladder-intro h2 span { color: var(--lime); }
-
-.ladder-note {
-  margin-top: 18px;
-  padding: 10px 13px;
-  color: #d8e7fb;
-  border-left: 2px solid var(--lime);
-  background: rgba(116, 182, 242, 0.08);
-  font-size: 14px;
-  font-weight: 600;
-}
-
-.ladder {
-  margin: 0;
-  padding: 0;
-  display: grid;
-  gap: 0;
-  list-style: none;
-}
-
-.ladder-rung {
-  display: grid;
-  grid-template-columns: 40px minmax(0, 1fr);
-  gap: 16px;
-}
-
-.ladder-rail {
-  position: relative;
-  display: flex;
-  justify-content: center;
-}
-
-/* The rail is drawn by the cell, so it connects rungs without extra elements. */
-.ladder-rail::before {
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  left: 50%;
-  width: 2px;
-  content: "";
-  background: var(--line-dark);
-  transform: translateX(-50%);
-}
-
-.ladder-rung:first-child .ladder-rail::before { top: 18px; }
-.ladder-rung:last-child .ladder-rail::before { bottom: auto; height: 18px; }
-
-.ladder-node {
-  position: relative;
-  z-index: 1;
-  width: 30px;
-  height: 30px;
-  margin-top: 3px;
-  display: grid;
-  place-items: center;
-  color: #cfe2fa;
-  background: var(--ink-soft);
-  border: 2px solid var(--line-dark);
-  border-radius: 50%;
-  font-size: 12px;
-  font-weight: 700;
-  font-variant-numeric: tabular-nums;
-}
-
-.ladder-rung[data-level="1"] .ladder-node { color: #ffe0a6; border-color: rgba(217, 149, 36, 0.55); }
-.ladder-rung[data-level="2"] .ladder-node { color: #ffc9a0; border-color: rgba(226, 130, 74, 0.6); }
-.ladder-rung[data-level="3"] .ladder-node { color: #ffb3ab; border-color: rgba(226, 86, 74, 0.7); }
-
-.ladder-body { padding: 0 0 26px; }
-
-.ladder-heading {
-  display: flex;
-  align-items: center;
-  gap: 9px;
-}
-
-.ladder-heading > svg { flex: 0 0 auto; color: var(--lime); }
-
-.ladder-rung[data-level="1"] .ladder-heading > svg { color: var(--amber); }
-.ladder-rung[data-level="2"] .ladder-heading > svg { color: #f0955a; }
-
-.ladder-heading h3 {
-  font-size: 17px;
-  font-weight: 650;
-  letter-spacing: -0.015em;
-}
-
-.ladder-meter {
-  margin-left: auto;
-  display: flex;
-  gap: 3px;
-}
-
-.ladder-meter i {
-  width: 14px;
-  height: 4px;
-  border-radius: 1px;
-  background: var(--line-dark);
-}
-
-.ladder-meter i.on { background: var(--lime); }
-.ladder-rung[data-level="1"] .ladder-meter i.on { background: var(--amber); }
-.ladder-rung[data-level="2"] .ladder-meter i.on { background: #f0955a; }
-.ladder-rung[data-level="3"] .ladder-meter i.on { background: var(--coral); }
-
-.ladder-body p {
-  margin-top: 7px;
-  max-width: 56ch;
-  color: rgba(232, 240, 251, 0.64);
-  font-size: 15px;
-  line-height: 1.6;
-}
-
-.ladder-fork-label {
-  margin: 6px 0 12px !important;
-  color: rgba(232, 240, 251, 0.5) !important;
-  font-size: 11px !important;
-  font-weight: 700;
-  letter-spacing: 0.09em;
-  text-transform: uppercase;
-}
-
-.ladder-fork-pair {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
-}
-
-.ladder-outcome {
-  padding: 15px 16px;
-  border: 1px solid var(--line-dark);
-  border-top: 2px solid var(--line-dark);
-  border-radius: var(--radius-md);
-  background: var(--ink-soft);
-}
-
-.ladder-outcome-ok { border-top-color: var(--teal); }
-.ladder-outcome-ok .ladder-heading > svg { color: var(--teal); }
-.ladder-outcome-alert { border-top-color: var(--coral); }
-.ladder-outcome-alert .ladder-heading > svg { color: var(--coral); }
-
-.ladder-outcome h3 { font-size: 15px; }
-.ladder-outcome p { margin-top: 6px; font-size: 14px; }
-
 /* ================================================== responsive ========== */
-
-@media (max-width: 1080px) {
-  .ladder-layout,
-  .crime-grid {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  .crime-stats { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-}
-
-@media (max-width: 860px) {
-  .ladder-fork-pair { grid-template-columns: minmax(0, 1fr); }
-  .crime-stats { grid-template-columns: minmax(0, 1fr); }
-
-  .crime-row {
-    grid-template-columns: auto minmax(0, 1fr);
-    row-gap: 4px;
-  }
-
-  .crime-row-where { grid-column: 2; }
-  .crime-row-when { grid-column: 2; }
-}
 
 @media (max-width: 620px) {
   .danger-box-facts > div,
-  .sos-facts > div,
-  .crime-headline-facts > div {
+.sos-facts > div {
     grid-template-columns: minmax(0, 1fr);
     gap: 2px;
   }
 
   .sos-actions .button { flex: 1 1 100%; }
-  .ladder-rung { grid-template-columns: 30px minmax(0, 1fr); gap: 12px; }
-  .ladder-node { width: 26px; height: 26px; font-size: 11px; }
-  .ladder-meter { display: none; }
 }
-
 
 /* ============================================ split map + street view ==== */
 
 /* The map keeps the left half; the street-level corridor takes the right.
-   Both panes start clear of the floating sidebar, so neither the map nor its
+   Both panes start clear of the floating sidebar,
+so neither the map nor its
    overlays end up hidden behind it — and inside the panes the overlays go back
    to a normal small inset. */
-.map-base-split {
+.map-split {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  padding-left: calc(var(--sidebar-width, 396px) + 26px);
-  --overlay-left: 20px;
-  --overlay-top: 16px;
+  width: 100%;
+  height: 100%;
+}
+
+.map-split.is-dragging {
+  cursor: col-resize;
+  user-select: none;
+}
+
+/* Draggable divider between the map and the street-level corridor. */
+.map-split-handle {
+  position: relative;
+  z-index: 750;
+  display: grid;
+  place-items: center;
+  background: var(--ink);
+  border-inline: 1px solid rgba(232, 240, 251, 0.14);
+  cursor: col-resize;
+  touch-action: none;
+}
+
+.map-split-handle span {
+  display: grid;
+  place-items: center;
+  width: 16px;
+  height: 34px;
+  color: rgba(232, 240, 251, 0.62);
+  background: var(--ink-soft);
+  border: 1px solid rgba(232, 240, 251, 0.18);
+  border-radius: 3px;
+}
+
+.map-split-handle:hover span,
+.map-split-handle:focus-visible span {
+  color: #fff;
+  background: var(--brand);
+  border-color: var(--brand);
 }
 
 .map-pane,
@@ -5477,7 +4854,6 @@ h4 {
 }
 
 .street-pane {
-  border-left: 1px solid rgba(13, 19, 30, 0.16);
   background: var(--ink);
 }
 
@@ -5615,7 +4991,8 @@ h4 {
   bottom: 58px;
 }
 
-/* Hazard rail: one tick per sampled point, flagged where reports sit. */
+/* Hazard rail: one tick per sampled point,
+flagged where reports sit. */
 .street-view-rail {
   display: flex;
   gap: 2px;
@@ -5859,27 +5236,8 @@ h4 {
   margin-top: 1px;
 }
 
-
-
-/* The escalation ladder now lives inside the dark data section. */
-.crime-divider {
-  margin-top: clamp(28px, 3vw, 44px);
-  padding-top: clamp(28px, 3vw, 44px);
-  border-top: 1px solid var(--line-dark);
-}
-
-.story-guardian-inline .ladder-layout {
-  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
-  gap: clamp(28px, 4vw, 56px);
-}
-
 .story-guardian-inline .story-eyebrow {
   color: var(--lime);
-}
-
-.story-guardian-inline .ladder-intro h2 {
-  margin-top: 14px;
-  font-size: clamp(1.9rem, 3.2vw, 2.6rem);
 }
 
 .story-guardian-inline .story-chapter-lede {
@@ -5888,14 +5246,8 @@ h4 {
   font-size: 16px;
 }
 
-@media (max-width: 1080px) {
-  .story-guardian-inline .ladder-layout {
-    grid-template-columns: minmax(0, 1fr);
-  }
-}
-
-
-/* Sidebar rhythm: the flex gap is the single source of vertical spacing, so
+/* Sidebar rhythm: the flex gap is the single source of vertical spacing,
+so
    children must not add their own margins on top of it. */
 .sidebar-float > * {
   flex: 0 0 auto;
@@ -5943,4 +5295,849 @@ h4 {
   .story-marquee-track {
     transform: none !important;
   }
+}
+
+/* ================================== compact sidebar + route danger ======= */
+
+/* Route cards: one short danger line instead of two bars and a paragraph. */
+.route-danger {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+  padding: 6px 8px;
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.35;
+  text-align: left;
+}
+
+.route-danger > svg {
+  flex: 0 0 auto;
+}
+
+.route-danger-clear {
+  color: #0f7a5c;
+  background: rgba(23, 163, 124, 0.1);
+}
+
+.route-danger-medium {
+  color: #96650f;
+  background: rgba(217, 149, 36, 0.14);
+}
+
+.route-danger-high {
+  color: #b23b31;
+  background: rgba(226, 86, 74, 0.12);
+}
+
+/* Location prompt: a single quiet row,
+not a card. */
+.location-prompt {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  color: var(--brand-deep);
+  background: rgba(27, 82, 192, 0.07);
+  border-radius: var(--radius-sm);
+  font-size: 12.5px;
+  font-weight: 600;
+}
+
+.location-prompt > span {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.location-prompt button {
+  padding: 4px 10px;
+  color: #fff;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: var(--brand);
+  font-size: 12px;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.location-prompt button.is-ghost {
+  color: var(--muted);
+  background: transparent;
+}
+
+.location-prompt-note {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--muted);
+  font-size: 11.5px;
+}
+
+/* Consent sheet: the primary action is centred and unmistakable. */
+.consent-actions {
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+}
+
+.consent-start {
+  width: 100%;
+  justify-content: center;
+}
+
+.consent-dismiss {
+  padding: 4px 8px;
+  color: var(--muted);
+  border: 0;
+  background: transparent;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.consent-dismiss:hover {
+  color: var(--text);
+  text-decoration: underline;
+}
+
+.consent-note {
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+/* Sidebar density: the planner and trip panels should fit without scrolling. */
+.route-card {
+  padding: 11px 12px;
+}
+
+.route-list {
+  gap: 8px;
+}
+
+.active-sidebar-float .guardian-state p {
+  font-size: 12.5px;
+  line-height: 1.45;
+}
+
+.next-steps h3 {
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+/* ============================ guardian map card: spread out,
+more context = */
+
+.guardian-map-card {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 10px;
+  width: min(420px, calc(100% - var(--overlay-left, 22px) - 22px));
+  padding: 13px 14px;
+}
+
+.guardian-map-card-head {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+}
+
+.guardian-map-card-who {
+  min-width: 0;
+  display: grid;
+  gap: 1px;
+}
+
+.guardian-map-card-who span {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.guardian-map-card-who strong {
+  overflow: hidden;
+  font-size: 14px;
+  font-weight: 650;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.guardian-map-card-stats {
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+}
+
+.guardian-map-card-stats > div {
+  padding: 7px 9px;
+  display: grid;
+  gap: 1px;
+}
+
+.guardian-map-card-stats > div + div {
+  border-left: 1px solid var(--line);
+}
+
+.guardian-map-card-stats dt {
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.guardian-map-card-stats dd {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+}
+
+.guardian-map-card-stats dd.is-warn {
+  color: var(--coral);
+}
+
+.guardian-map-card-danger {
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+  padding: 8px 9px;
+  color: #b23b31;
+  background: rgba(226, 86, 74, 0.09);
+  border-radius: var(--radius-sm);
+  font-size: 11.5px;
+  line-height: 1.45;
+}
+
+.guardian-map-card-danger > svg {
+  flex: 0 0 auto;
+  margin-top: 1px;
+}
+
+/* ================================ sidebar: more air between groupings ==== */
+
+.sidebar-float {
+  gap: 14px;
+}
+
+.guardian-float .guardian-status-banner,
+.guardian-float .guardian-trip-facts,
+.guardian-float .alerts-panel {
+  padding: 13px 14px;
+}
+
+.guardian-trip-facts {
+  gap: 1px;
+}
+
+.guardian-trip-facts > div {
+  padding: 10px 11px;
+  gap: 3px;
+}
+
+.alerts-panel {
+  display: grid;
+  gap: 10px;
+}
+
+.sidebar-section-heading {
+  margin: 0;
+}
+
+.active-sidebar-float .active-destination,
+.active-sidebar-float .guardian-state,
+.active-sidebar-float .trip-metrics,
+.active-sidebar-float .next-steps {
+  margin: 0;
+}
+
+.active-sidebar-float .next-steps {
+  display: grid;
+  gap: 8px;
+}
+
+.active-sidebar-float .direction {
+  padding: 9px 10px;
+}
+
+.trip-metrics > div {
+  padding: 10px 11px;
+}
+
+.route-results {
+  display: grid;
+  gap: 12px;
+  margin: 0;
+}
+
+/* Results heading collapses to a single row now that the origin/destination
+   recap above it is gone. */
+.results-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 0;
+  border: 0;
+}
+
+.results-heading > strong {
+  font-size: 13px;
+  font-weight: 650;
+}
+
+/* Steps and stats share one three-column rhythm and the same hairline rules {
+  width: min(var(--page-max), 100%);
+  margin: 0 auto;
+  padding-inline: var(--page-gutter);
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  list-style: none;
+}
+
+/* ================================================== homepage rebuild ===== */
+
+.hero {
+  width: 100%;
+  padding: clamp(44px, 5vw, 72px) 0 clamp(40px, 4.5vw, 64px);
+  color: var(--text);
+  background: var(--paper);
+  border-bottom: 1px solid var(--line);
+}
+
+/* Copy left, the worked example right. Centred against each other so neither
+   column floats in dead space. */
+.hero-grid {
+  width: min(var(--page-max), 100%);
+  margin: 0 auto;
+  padding-inline: var(--page-gutter);
+  display: grid;
+  grid-template-columns: minmax(0, 1.08fr) minmax(340px, 0.92fr);
+  align-items: stretch;
+  gap: clamp(32px, 4vw, 64px);
+}
+
+.hero-copy {
+  min-width: 0;
+}
+
+.hero-eyebrow {
+  color: var(--brand);
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+}
+
+.hero-title {
+  max-width: 17ch;
+  margin-top: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: clamp(2.3rem, 3.9vw, 3.4rem);
+  font-weight: 600;
+  line-height: 1.05;
+  letter-spacing: -0.033em;
+}
+
+.hero-title span {
+  max-width: 22ch;
+  color: var(--muted);
+  font-weight: 500;
+}
+
+.hero-lede {
+  max-width: 50ch;
+  margin-top: 18px;
+  color: var(--muted);
+  font-size: 16px;
+  line-height: 1.6;
+}
+
+.hero-actions {
+  margin-top: 26px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+/* Example route card sits at its natural height. */
+.hero-panel {
+  min-width: 0;
+  margin: 0;
+  padding: clamp(18px, 2vw, 24px);
+  display: grid;
+  align-content: space-between;
+  gap: 16px;
+  background: var(--paper-bright);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow);
+}
+
+.hero-panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--line);
+}
+
+.hero-panel-eyebrow {
+  color: var(--muted);
+  font-size: 12.5px;
+  font-weight: 500;
+}
+
+.hero-panel-chip {
+  padding: 3px 8px;
+  color: var(--brand-deep);
+  background: rgba(27, 82, 192, 0.1);
+  border-radius: var(--radius-sm);
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.hero-route {
+  display: grid;
+}
+
+.hero-route-point {
+  display: grid;
+  grid-template-columns: 12px minmax(0, 1fr);
+  align-items: start;
+  gap: 11px;
+}
+
+.hero-route-point > div {
+  min-width: 0;
+  display: grid;
+  gap: 1px;
+}
+
+.hero-route-point span {
+  color: var(--muted);
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+
+.hero-route-point strong {
+  font-size: 14.5px;
+  font-weight: 600;
+}
+
+.hero-route-dot {
+  width: 11px;
+  height: 11px;
+  margin-top: 4px;
+  border: 2px solid var(--brand);
+  border-radius: 50%;
+  background: var(--paper-bright);
+}
+
+.hero-route-dot-end {
+  border-color: var(--teal);
+  background: var(--teal);
+}
+
+.hero-route-connector {
+  width: 1px;
+  height: 22px;
+  margin: 3px 0 3px 5px;
+  background: var(--line-strong);
+}
+
+.hero-panel-metrics {
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+}
+
+.hero-panel-metrics > div {
+  padding: 11px 12px;
+  display: grid;
+  gap: 3px;
+}
+
+.hero-panel-metrics > div + div {
+  border-left: 1px solid var(--line);
+}
+
+.hero-panel-metrics dt {
+  color: var(--muted);
+  font-size: 11.5px;
+}
+
+.hero-panel-metrics dd {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+.hero-panel-reason {
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+/* ---------------------------------------------- dark data section ------- */
+
+.crime-top {
+  display: grid;
+  grid-template-columns: minmax(0, 1.12fr) minmax(300px, 0.88fr);
+  align-items: start;
+  gap: clamp(28px, 4vw, 60px);
+}
+
+.crime-head {
+  max-width: none;
+}
+
+/* Matches the eyebrow opposite it line for line, so both columns share a top
+   edge instead of the ledger floating against the middle of the heading. */
+.crime-ledger {
+  padding: clamp(18px, 2vw, 24px);
+  border: 1px solid var(--line-dark);
+  border-radius: var(--radius-lg);
+  background: var(--ink-soft);
+}
+
+.crime-ledger-label {
+  color: rgba(232, 240, 251, 0.5);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  line-height: 1.35;
+  text-transform: uppercase;
+}
+
+.crime-cta {
+  margin-top: clamp(20px, 2.2vw, 28px);
+  justify-self: start;
+}
+
+.crime-lede {
+  max-width: 54ch;
+  margin-top: 16px;
+  color: rgba(232, 240, 251, 0.66);
+  font-size: 15.5px;
+  line-height: 1.6;
+}
+
+/* Totals read as a compact ledger beside the heading. */
+.crime-stats {
+  margin: 4px 0 0;
+  display: grid;
+  gap: 0;
+}
+
+.crime-stats > div {
+  padding: 11px 0;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.crime-stats > div + div {
+  border-top: 1px solid var(--line-dark);
+}
+
+.crime-stats dt {
+  color: rgba(232, 240, 251, 0.58);
+  font-size: 13px;
+}
+
+.crime-stats dd {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 600;
+  letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums;
+}
+
+.crime-detail {
+  margin-top: clamp(26px, 3vw, 40px);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  align-items: stretch;
+  gap: 16px;
+}
+
+.crime-headline-card {
+  padding: clamp(18px, 2vw, 24px);
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  gap: 14px;
+  border: 1px solid rgba(226, 86, 74, 0.34);
+  border-left: 3px solid var(--coral);
+  border-radius: var(--radius-lg);
+  background: rgba(226, 86, 74, 0.08);
+}
+
+.crime-headline-top {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 11px;
+}
+
+.crime-headline-icon {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  color: #fff;
+  background: var(--coral);
+  border-radius: var(--radius-sm);
+}
+
+.crime-headline-kicker {
+  color: #ff9c91;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+
+.crime-headline-title {
+  display: block;
+  margin-top: 3px;
+  font-size: 18px;
+  font-weight: 650;
+  letter-spacing: -0.02em;
+}
+
+.crime-headline-when {
+  padding: 3px 8px;
+  color: #ffd9d4;
+  background: rgba(226, 86, 74, 0.24);
+  border-radius: var(--radius-sm);
+  font-size: 10.5px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.crime-headline-facts {
+  margin: 0;
+  display: grid;
+  grid-auto-rows: 1fr;
+  overflow: hidden;
+  border: 1px solid var(--line-dark);
+  border-radius: var(--radius-sm);
+}
+
+.crime-headline-facts > div {
+  display: grid;
+  grid-template-columns: 88px minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+  padding: 9px 12px;
+}
+
+.crime-headline-facts > div + div {
+  border-top: 1px solid var(--line-dark);
+}
+
+.crime-headline-facts dt {
+  color: rgba(232, 240, 251, 0.52);
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.crime-headline-facts dd {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 550;
+}
+
+.crime-severity {
+  text-transform: capitalize;
+}
+
+.crime-headline-note {
+  color: rgba(232, 240, 251, 0.62);
+  font-size: 12.5px;
+  line-height: 1.55;
+}
+
+.crime-feed {
+  padding: clamp(18px, 2vw, 24px);
+  display: grid;
+  align-content: start;
+  gap: 8px;
+  border: 1px solid var(--line-dark);
+  border-radius: var(--radius-lg);
+  background: var(--ink-soft);
+}
+
+.crime-feed-label {
+  padding-bottom: 4px;
+  color: rgba(232, 240, 251, 0.5);
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+
+.crime-feed ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.crime-row {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 0;
+  font-size: 12.5px;
+}
+
+.crime-row + .crime-row {
+  border-top: 1px solid var(--line-dark);
+}
+
+.crime-row-where {
+  grid-column: 1 / -1;
+  padding-left: 34px;
+  overflow: hidden;
+  color: rgba(232, 240, 251, 0.55);
+  font-size: 11.5px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.crime-foot {
+  margin-top: clamp(22px, 2.4vw, 32px);
+  padding-top: clamp(16px, 1.8vw, 22px);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 14px;
+  border-top: 1px solid var(--line-dark);
+}
+
+.crime-foot p {
+  color: rgba(232, 240, 251, 0.5);
+  font-size: 12px;
+}
+
+@media (max-width: 900px) {
+  .hero-grid,
+  .crime-top,
+  .crime-detail {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+}
+
+.crime-headline-note {
+  padding-top: 4px;
+}
+
+/* Feed row: icon, then type over location, with the date held on the right. */
+.crime-row {
+  grid-template-columns: 22px minmax(0, 1fr) auto;
+  align-items: center;
+  column-gap: 10px;
+  row-gap: 2px;
+  padding: 10px 0;
+}
+
+.crime-row-icon {
+  grid-row: 1 / span 2;
+  width: 22px;
+  height: 22px;
+  display: grid;
+  place-items: center;
+  border-radius: var(--radius-sm);
+}
+
+.crime-row-type {
+  grid-column: 2;
+  grid-row: 1;
+  font-weight: 600;
+}
+
+.crime-row-where {
+  grid-column: 2;
+  grid-row: 2;
+  padding-left: 0;
+  overflow: hidden;
+  color: rgba(232, 240, 251, 0.55);
+  font-size: 11.5px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.crime-row-when {
+  grid-column: 3;
+  grid-row: 1 / span 2;
+  color: rgba(232, 240, 251, 0.5);
+  font-size: 11.5px;
+  white-space: nowrap;
+}
+
+/* Frames crossfade instead of hard-cutting, so moving along the route reads as
+   motion rather than a slideshow. */
+.street-view-image {
+  opacity: 0;
+  transition: opacity 260ms ease;
+}
+
+.street-view-image.is-loaded {
+  opacity: 1;
+}
+
+.street-view-image-base {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  opacity: 1;
+}
+
+.street-view-stage .street-view-image:not(.street-view-image-base) {
+  position: relative;
+  z-index: 1;
+}
+
+.street-view-resume {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 9px;
+  color: #fff;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: var(--brand);
+  font-size: 11.5px;
+  font-weight: 650;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.street-view-resume:hover {
+  background: var(--brand-deep);
 }

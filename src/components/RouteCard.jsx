@@ -6,6 +6,7 @@ import {
   Footprints,
   LightbulbFilament,
   ShieldCheck,
+  WarningOctagon,
 } from "@phosphor-icons/react";
 import { formatMinutes, formatMinutesDelta } from "../logic/duration.js";
 
@@ -13,7 +14,7 @@ function routeCondition(route) {
   return route.conditionScore ?? Math.max(0, 100 - route.riskScore);
 }
 
-export default function RouteCard({ route, selected, onSelect }) {
+export default function RouteCard({ route, selected, onSelect, danger }) {
   const condition = routeCondition(route);
   const transitSummary = route.mode === "transit"
     ? [
@@ -82,26 +83,17 @@ export default function RouteCard({ route, selected, onSelect }) {
         </span>
       </span>
 
-      <span className="route-score-bars" aria-hidden="true">
-        <span>
-          <i>Route conditions</i>
-          <b><i style={{ width: `${condition}%` }} /></b>
+      {danger && (
+        <span className={`route-danger route-danger-${danger.level}`}>
+          {danger.level === "clear" ? (
+            <ShieldCheck size={13} weight="fill" aria-hidden="true" />
+          ) : (
+            <WarningOctagon size={13} weight="fill" aria-hidden="true" />
+          )}
+          {danger.text}
         </span>
-        <span>
-          <i>Travel time</i>
-          <b><i style={{ width: `${Math.round((route.normalizedTravelTime ?? 0.8) * 100)}%` }} /></b>
-        </span>
-      </span>
+      )}
 
-      <span className="route-explanation">
-        {route.recommended ? (
-          <>
-            <strong>Recommended.</strong> {route.explanation || "The strongest balance of route conditions and travel time."}
-          </>
-        ) : (
-          route.reasons?.[0] || route.explanation
-        )}
-      </span>
     </button>
   );
 }

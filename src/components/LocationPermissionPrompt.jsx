@@ -1,75 +1,62 @@
 "use client";
 
-import { MapPin, Info } from "@phosphor-icons/react";
 import { useState } from "react";
+import { Crosshair, Info } from "@phosphor-icons/react";
 
+/**
+ * Offers to use the device's real position. Trip playback runs on its own
+ * either way, so this is a quiet upgrade rather than a required choice — it
+ * collapses as soon as it is answered or dismissed.
+ */
 export default function LocationPermissionPrompt({ onPermissionRequested }) {
-  const [requested, setRequested] = useState(false);
-  const [denied, setDenied] = useState(false);
+  const [state, setState] = useState("idle");
 
-  const handleRequest = async () => {
-    setRequested(true);
+  const request = () => {
+    setState("asking");
     if (!navigator.geolocation) {
-      setDenied(true);
-      if (onPermissionRequested) onPermissionRequested("unavailable");
+      setState("denied");
+      onPermissionRequested?.("unavailable");
       return;
     }
-
     navigator.geolocation.getCurrentPosition(
-      (position) => {
-        if (onPermissionRequested) onPermissionRequested("granted");
+      () => {
+        setState("granted");
+        onPermissionRequested?.("granted");
       },
       (error) => {
-        if (error.code === 1) {
-          setDenied(true);
-          if (onPermissionRequested) onPermissionRequested("denied");
-        }
+        setState(error.code === 1 ? "denied" : "idle");
+        onPermissionRequested?.(error.code === 1 ? "denied" : "error");
       },
-      { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
+      { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 },
     );
   };
 
-  if (denied) {
+  if (state === "granted" || state === "dismissed") return null;
+
+  if (state === "denied") {
     return (
-      <div className="location-prompt location-prompt-denied" role="alert">
-        <Info size={18} weight="fill" aria-hidden="true" />
-        <div>
-          <strong>Location access was denied</strong>
-          <p>You can still use Simulation Mode to test the trip. The app needs location permission to track your live journey.</p>
-        </div>
-      </div>
+      <p className="location-prompt-note" role="status">
+        <Info size={14} weight="fill" aria-hidden="true" />
+        Location is off — trips play back along the planned route instead.
+      </p>
     );
   }
 
-  if (requested) {
-    return null;
-  }
-
   return (
-    <div className="location-prompt" role="region" aria-label="Location permission notice">
-      <div className="prompt-content">
-        <MapPin size={20} weight="fill" aria-hidden="true" />
-        <div className="prompt-text">
-          <strong>Use your real location?</strong>
-          <p>Sentinel can track your actual journey when you start a trip, or you can use Simulation Mode for testing without traveling.</p>
-        </div>
-      </div>
-      <div className="prompt-actions">
-        <button
-          type="button"
-          className="button button-soft button-small"
-          onClick={() => setRequested(true)}
-        >
-          Use Simulation
-        </button>
-        <button
-          type="button"
-          className="button button-lime button-small"
-          onClick={handleRequest}
-        >
-          Allow Location
-        </button>
-      </div>
+    <div className="location-prompt" role="region" aria-label="Use your location">
+      <Crosshair size={16} weight="bold" aria-hidden="true" />
+      <span>Use your real location for this trip?</span>
+      <button type="button" onClick={request} disabled={state === "asking"}>
+        {state === "asking" ? "Asking…" : "Allow"}
+      </button>
+      <button
+        type="button"
+        className="is-ghost"
+        onClick={() => setState("dismissed")}
+        aria-label="Dismiss location prompt"
+      >
+        Not now
+      </button>
     </div>
   );
 }

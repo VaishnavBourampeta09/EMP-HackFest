@@ -33,10 +33,10 @@ function whenLabel(days) {
 
 /**
  * The homepage's proof section: the actual City of Redmond crime feed the
- * router scores against. Showing the real records — with dates and blocks —
+ * router scores against. Showing the real records, with dates and blocks,
  * makes the safety claim concrete instead of decorative.
  */
-export default function LiveCrimeSection({ onPlanClick, children }) {
+export default function LiveCrimeSection({ onPlanClick }) {
   const [incidents, setIncidents] = useState([]);
   const [state, setState] = useState("loading");
   const [meta, setMeta] = useState(null);
@@ -98,32 +98,55 @@ export default function LiveCrimeSection({ onPlanClick, children }) {
   return (
     <section className="crime-section" aria-labelledby="crime-title">
       <div className="crime-inner">
-        <header className="crime-head">
-          <p className="story-eyebrow crime-eyebrow">
-            <span className="crime-live-dot" aria-hidden="true" />
-            Live City of Redmond crime feed
-          </p>
-          <h2 id="crime-title">
-            This is the data your route is scored against.
-          </h2>
-          <p className="crime-lede">
-            Sentinel reads the City of Redmond public crime layer and OpenStreetMap
-            street lighting, then weighs every candidate route against what is
-            actually mapped near it — by severity, by how recent it is, and by
-            how close it falls to your path.
-          </p>
-        </header>
+        {/* Heading on the left, the running totals on the right, so the row
+            balances instead of a wide header over an empty gutter. */}
+        <div className="crime-top">
+          <header className="crime-head">
+            <p className="story-eyebrow crime-eyebrow">
+              <span className="crime-live-dot" aria-hidden="true" />
+              Live City of Redmond crime feed
+            </p>
+            <h2 id="crime-title">This is the data your route is scored against.</h2>
+            <p className="crime-lede">
+              Sentinel reads the City of Redmond crime layer and OpenStreetMap
+              street lighting, then weighs every candidate route against what is
+              mapped near it: by severity, by how recent it is, and by how close it
+              falls to your path.
+            </p>
+            <button type="button" className="button button-primary crime-cta" onClick={onPlanClick}>
+              Score a route against this data
+              <ArrowRight size={17} weight="bold" aria-hidden="true" />
+            </button>
+          </header>
 
-        <div className="crime-grid">
+          {/* The totals carry their own label so this column starts on the
+              same line as the eyebrow opposite it. */}
+          <div className="crime-ledger">
+            <p className="crime-ledger-label">Redmond, rolling 30 days</p>
+            <dl className="crime-stats" aria-label="Recent incident counts">
+              <div>
+                <dt>Reports mapped downtown</dt>
+                <dd>{state === "ready" ? stats.total : "…"}</dd>
+              </div>
+              <div>
+                <dt>Filed in the last 7 days</dt>
+                <dd>{state === "ready" ? stats.week : "…"}</dd>
+              </div>
+              <div>
+                <dt>Personal-safety or traffic</dt>
+                <dd>{state === "ready" ? stats.serious : "…"}</dd>
+              </div>
+            </dl>
+          </div>
+        </div>
+
+        <div className="crime-detail">
           <article className="crime-headline-card">
-            {state === "loading" && (
-              <p className="crime-loading">Loading the live Redmond feed…</p>
-            )}
-
-            {state === "empty" && (
+            {state !== "ready" && (
               <p className="crime-loading">
-                The live feed is unavailable right now. Sentinel falls back to a
-                cached snapshot so routing keeps working.
+                {state === "loading"
+                  ? "Loading the live Redmond feed…"
+                  : "The live feed is unavailable right now. Sentinel falls back to a cached snapshot so routing keeps working."}
               </p>
             )}
 
@@ -131,12 +154,10 @@ export default function LiveCrimeSection({ onPlanClick, children }) {
               <>
                 <div className="crime-headline-top">
                   <span className="crime-headline-icon" aria-hidden="true">
-                    <Fire size={20} weight="fill" />
+                    <Fire size={18} weight="fill" />
                   </span>
                   <div>
-                    <p className="crime-headline-kicker">
-                      Most serious recent report downtown
-                    </p>
+                    <p className="crime-headline-kicker">Most serious recent report</p>
                     <strong className="crime-headline-title">
                       {headline.categoryLabel || headline.description || "Reported incident"}
                     </strong>
@@ -152,70 +173,45 @@ export default function LiveCrimeSection({ onPlanClick, children }) {
                     <dd>{headline.generalizedLocation || "Downtown Redmond"}</dd>
                   </div>
                   <div>
-                    <dt>Reported as</dt>
-                    <dd>{headline.description || headline.sourceCategory || "—"}</dd>
-                  </div>
-                  <div>
                     <dt>Severity</dt>
                     <dd className="crime-severity">
-                      {(headline.severityLabel || "").replace(/_/g, " ") || "—"}
+                      {(headline.severityLabel || "").replace(/_/g, " ") || "Unclassified"}
                     </dd>
                   </div>
                 </dl>
 
                 <p className="crime-headline-note">
-                  A route passing within a block of this report scores lower than
-                  one two streets over — and after dark, lower still.
+                  A route passing within a block of this report scores lower than one
+                  two streets over, and lower still after dark.
                 </p>
               </>
             )}
           </article>
 
-          <div className="crime-stats" role="group" aria-label="Recent incident counts">
-            <div>
-              <strong>{state === "ready" ? stats.total : "—"}</strong>
-              <span>Reports mapped downtown</span>
-            </div>
-            <div>
-              <strong>{state === "ready" ? stats.week : "—"}</strong>
-              <span>Filed in the last 7 days</span>
-            </div>
-            <div>
-              <strong>{state === "ready" ? stats.serious : "—"}</strong>
-              <span>Personal-safety or traffic</span>
-            </div>
-          </div>
-        </div>
-
-        {state === "ready" && recent.length > 0 && (
           <div className="crime-feed">
             <p className="crime-feed-label">Most recent reports</p>
             <ul>
-              {recent.map((incident) => {
-                const meta2 = CATEGORY_META[incident.category] ?? CATEGORY_META.user_reported;
-                const Icon = meta2.Icon;
+              {(state === "ready" ? recent : []).map((incident) => {
+                const tone = CATEGORY_META[incident.category] ?? CATEGORY_META.user_reported;
+                const Icon = tone.Icon;
                 return (
-                  <li key={incident.id} className={`crime-row crime-row-${meta2.tone}`}>
+                  <li key={incident.id} className={`crime-row crime-row-${tone.tone}`}>
                     <span className="crime-row-icon" aria-hidden="true">
-                      <Icon size={14} weight="fill" />
+                      <Icon size={13} weight="fill" />
                     </span>
                     <span className="crime-row-type">
-                      {incident.categoryLabel || meta2.label}
+                      {incident.categoryLabel || tone.label}
                     </span>
                     <span className="crime-row-where">
                       {incident.generalizedLocation || "Redmond"}
                     </span>
-                    <span className="crime-row-when">
-                      {whenLabel(incident.recencyDays)}
-                    </span>
+                    <span className="crime-row-when">{whenLabel(incident.recencyDays)}</span>
                   </li>
                 );
               })}
             </ul>
           </div>
-        )}
-
-        {children ? <div className="crime-divider">{children}</div> : null}
+        </div>
 
         <div className="crime-foot">
           <p>
@@ -223,10 +219,6 @@ export default function LiveCrimeSection({ onPlanClick, children }) {
               ? `Live from ${meta.provider ?? "the City of Redmond"} · updated ${new Date(meta.queriedAt ?? Date.now()).toLocaleString()}`
               : "Source: City of Redmond open crime data · OpenStreetMap street lighting"}
           </p>
-          <button type="button" className="button button-primary" onClick={onPlanClick}>
-            Score a route against this data
-            <ArrowRight size={17} weight="bold" aria-hidden="true" />
-          </button>
         </div>
       </div>
     </section>
