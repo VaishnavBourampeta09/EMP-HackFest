@@ -1,31 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
-import {
-  ArrowCounterClockwise,
-  ArrowLeft,
-  MapTrifold,
-  Pause,
-  Path,
-  Play,
-  UsersThree,
-} from "@phosphor-icons/react";
+import { useEffect, useState } from "react";
+import { ArrowLeft, MapTrifold, UsersThree } from "@phosphor-icons/react";
 import BrandMark from "./BrandMark.jsx";
 import TeenTripScreen from "./TeenTripScreen.jsx";
 import ParentDashboard from "./ParentDashboard.jsx";
-import { useStore, setState, getState, resetDemo } from "../store.js";
+import { useStore, setState, getState } from "../store.js";
 import { pushLocation, expireCheckin, endTrip } from "../actions.js";
-import { nearestIndex } from "../logic/geo.js";
-
-function buildDeviationPath(points = []) {
-  if (points.length < 2) return points;
-  return points.map(([lat, lng], index) => {
-    const progress = index / Math.max(1, points.length - 1);
-    const deviation = Math.sin(progress * Math.PI) * 0.0032;
-    return [lat + deviation * 0.72, lng + deviation];
-  });
-}
+import { buildDeviationPath } from "../logic/simulation.js";
 
 export default function PlannerApp() {
   const [mode, setMode] = useState("teen");
@@ -97,56 +80,6 @@ export default function PlannerApp() {
     return () => window.clearInterval(id);
   }, []);
 
-  const controls = useMemo(
-    () => [
-      {
-        label: simulation.stopped ? "Resume trip" : "Simulate stop",
-        icon: simulation.stopped ? Play : Pause,
-        disabled: !active,
-        onClick: () =>
-          setState({
-            simulation: {
-              ...getState().simulation,
-              stopped: !simulation.stopped,
-              minutesStopped: 0,
-            },
-          }),
-      },
-      {
-        label: simulation.offRoute ? "Return to route" : "Simulate detour",
-        icon: simulation.offRoute ? ArrowCounterClockwise : Path,
-        disabled: !active,
-        onClick: () => {
-          const state = getState();
-          const sim = state.simulation;
-          const routePoints = state.trip?.route?.points || [];
-          const deviationPoints = buildDeviationPath(routePoints);
-          const goingOffRoute = !sim.offRoute;
-          const targetPath = goingOffRoute ? deviationPoints : routePoints;
-          const index = targetPath.length
-            ? nearestIndex(state.trip.location, targetPath)
-            : 0;
-          setState({
-            simulation: {
-              ...sim,
-              offRoute: goingOffRoute,
-              index,
-              stopped: false,
-              minutesStopped: 0,
-            },
-          });
-        },
-      },
-      {
-        label: "Reset",
-        icon: ArrowCounterClockwise,
-        disabled: false,
-        onClick: resetDemo,
-      },
-    ],
-    [active, simulation.offRoute, simulation.stopped],
-  );
-
   const chooseMode = (nextMode) => {
     setMode(nextMode);
     window.history.replaceState(
@@ -203,28 +136,6 @@ export default function PlannerApp() {
           </div>
         </nav>
       </header>
-
-      {/* Floating simulator toolbar — top-right corner of map */}
-      <div className="simulator-float" aria-label="Trip simulator controls">
-        <span className="simulator-float-label">Demo</span>
-        <div className="simulator-actions">
-          {controls.map((control) => {
-            const Icon = control.icon;
-            return (
-              <button
-                key={control.label}
-                type="button"
-                disabled={control.disabled}
-                onClick={control.onClick}
-                title={control.label}
-              >
-                <Icon size={15} weight="bold" aria-hidden="true" />
-                <span>{control.label}</span>
-              </button>
-            );
-          })}
-        </div>
-      </div>
 
       {/* Full-viewport map canvas — each screen renders the map as base layer */}
       <main className="planner-map-main" aria-label="Trip planner">

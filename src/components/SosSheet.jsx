@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { formatMinutes } from "../logic/duration.js";
 import {
   CheckCircle,
   Copy,
@@ -110,7 +111,7 @@ export default function SosSheet({ sos, guardian, safePlaces = [], onClear }) {
           <div>
             <dt>Expected arrival</dt>
             <dd>
-              {Number.isFinite(sos.etaMinutes) ? `${sos.etaMinutes} min` : "Recalculating"}
+              {Number.isFinite(sos.etaMinutes) ? formatMinutes(sos.etaMinutes) : "Recalculating"}
             </dd>
           </div>
         </dl>

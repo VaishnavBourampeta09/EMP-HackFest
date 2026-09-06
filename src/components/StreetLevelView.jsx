@@ -9,21 +9,37 @@ import {
   Eye,
   Pause,
   Play,
+  ShieldCheck,
   Spinner,
+  WarningOctagon,
 } from "@phosphor-icons/react";
 import { haversineMeters } from "../logic/geo.js";
 
 const COMPASS = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"];
 
+/** How close a past report must be to count as "at this spot". */
+const HAZARD_RADIUS_M = 120;
+
+const SEVERE = new Set(["violent_crime", "collision"]);
+
 function bearingLabel(heading) {
   if (!Number.isFinite(heading)) return null;
-  return COMPASS[Math.round(((heading % 360) + 360) % 360 / 45) % 8];
+  return COMPASS[Math.round((((heading % 360) + 360) % 360) / 45) % 8];
 }
 
 function shotYear(shotDate) {
   if (!shotDate) return null;
   const year = String(shotDate).slice(0, 4);
   return /^\d{4}$/.test(year) ? year : null;
+}
+
+function whenLabel(days) {
+  if (!Number.isFinite(days)) return "recently";
+  if (days <= 0) return "today";
+  if (days === 1) return "yesterday";
+  if (days < 7) return `${days}d ago`;
+  if (days < 60) return `${Math.round(days / 7)}w ago`;
+  return `${Math.round(days / 30)}mo ago`;
 }
 
 function googleStreetViewUrl(point, heading) {
@@ -40,17 +56,21 @@ function googleStreetViewUrl(point, heading) {
  * A street-level walk-through of the route corridor.
  *
  * Frames come from KartaView's open imagery archive (no API key), sampled along
- * the route. When a trip is live the view follows the traveller's position; when
- * it is not, it plays through the corridor so a rider can preview what the walk
- * actually looks like before they set off.
+ * the route. During a live trip the view follows the traveller; otherwise it
+ * plays through the corridor so a rider can preview the walk before setting off.
+ *
+ * Past incident reports are matched to each frame, so the imagery answers
+ * "what happened here?" and not just "what does this block look like?".
  */
 export default function StreetLevelView({
   points = [],
   position = null,
+  incidents = [],
   title = "Street-level view",
   subtitle,
   autoPlay = true,
   height = 260,
+  fill = false,
 }) {
   const [frames, setFrames] = useState([]);
   const [metadata, setMetadata] = useState(null);
@@ -113,6 +133,23 @@ export default function StreetLevelView({
     [frames, failedIds],
   );
 
+  /** Past reports attached to each frame, so the rail can mark hazard spots. */
+  const hazardsByFrame = useMemo(() => {
+    if (usable.length === 0 || incidents.length === 0) return [];
+    return usable.map((frame) =>
+      incidents
+        .filter(
+          (incident) =>
+            Number.isFinite(incident?.lat) &&
+            Number.isFinite(incident?.lng) &&
+            haversineMeters([frame.lat, frame.lng], [incident.lat, incident.lng]) <=
+              HAZARD_RADIUS_M,
+        )
+        .sort((a, b) => (b.severity ?? 0) - (a.severity ?? 0))
+        .slice(0, 4),
+    );
+  }, [usable, incidents]);
+
   // While a trip is live the corridor follows the traveller instead of playing.
   const followIndex = useMemo(() => {
     if (!Array.isArray(position) || usable.length === 0) return null;
@@ -136,45 +173,63 @@ export default function StreetLevelView({
     if (followIndex !== null || !playing || usable.length < 2) return undefined;
     const id = window.setInterval(() => {
       setIndex((current) => (current + 1) % usable.length);
-    }, 2600);
+    }, 2200);
     return () => window.clearInterval(id);
   }, [followIndex, playing, usable.length]);
 
   const safeIndex = usable.length > 0 ? Math.min(index, usable.length - 1) : 0;
   const frame = usable[safeIndex] ?? null;
-  const anchor = frame ? [frame.lat, frame.lng] : points[0] ?? null;
+  const anchor = frame ? [frame.lat, frame.lng] : (points[0] ?? null);
   const externalUrl = googleStreetViewUrl(anchor, frame?.heading);
   const isFollowing = followIndex !== null;
+  const hazards = hazardsByFrame[safeIndex] ?? [];
+  const worst = hazards[0] ?? null;
+  const totalHazardSpots = hazardsByFrame.filter((list) => list.length > 0).length;
+
+  const goTo = (next) => {
+    setPlaying(false);
+    setIndex(((next % usable.length) + usable.length) % usable.length);
+  };
 
   return (
-    <section className="street-view" aria-label={title}>
+    <section
+      className={`street-view${fill ? " street-view-fill" : ""}`}
+      aria-label={title}
+    >
       <header className="street-view-head">
         <span className="street-view-icon" aria-hidden="true">
-          <Eye size={17} weight="fill" />
+          <Eye size={16} weight="fill" />
         </span>
         <div className="street-view-titles">
           <strong>{title}</strong>
           <span>
             {subtitle ??
               (isFollowing
-                ? "Following the live position along the route"
-                : "Playing through the route corridor")}
+                ? "Following the live position"
+                : "Playing through the route")}
           </span>
         </div>
+
+        {totalHazardSpots > 0 && (
+          <span className="street-view-hazard-count">
+            <WarningOctagon size={13} weight="fill" aria-hidden="true" />
+            {totalHazardSpots} hazard spot{totalHazardSpots === 1 ? "" : "s"}
+          </span>
+        )}
 
         {!isFollowing && usable.length > 1 && (
           <button
             type="button"
             className="street-view-play"
             onClick={() => setPlaying((value) => !value)}
-            aria-label={playing ? "Pause the corridor walk-through" : "Play the corridor walk-through"}
+            aria-label={playing ? "Pause the walk-through" : "Play the walk-through"}
           >
-            {playing ? <Pause size={15} weight="fill" /> : <Play size={15} weight="fill" />}
+            {playing ? <Pause size={14} weight="fill" /> : <Play size={14} weight="fill" />}
           </button>
         )}
       </header>
 
-      <div className="street-view-stage" style={{ height }}>
+      <div className="street-view-stage" style={fill ? undefined : { height }}>
         {status === "loading" && (
           <div className="street-view-state" role="status">
             <Spinner size={20} weight="bold" className="spin" aria-hidden="true" />
@@ -213,66 +268,79 @@ export default function StreetLevelView({
               decoding="async"
               referrerPolicy="no-referrer"
               onLoad={() =>
-                setLoadedIds((current) => {
-                  const next = new Set(current);
-                  next.add(frame.id);
-                  return next;
-                })
+                setLoadedIds((current) => new Set(current).add(frame.id))
               }
               onError={() =>
-                setFailedIds((current) => {
-                  const next = new Set(current);
-                  next.add(frame.id);
-                  return next;
-                })
+                setFailedIds((current) => new Set(current).add(frame.id))
               }
             />
 
             {!loadedIds.has(frame.id) && (
               <div className="street-view-loading" role="status">
                 <Spinner size={18} weight="bold" className="spin" aria-hidden="true" />
-                <span>Loading the view along this block…</span>
+                <span>Loading this block…</span>
               </div>
             )}
 
             <div className="street-view-badges">
               {bearingLabel(frame.heading) && (
                 <span className="street-view-badge">
-                  <Compass size={13} weight="bold" aria-hidden="true" />
-                  Facing {bearingLabel(frame.heading)}
+                  <Compass size={12} weight="bold" aria-hidden="true" />
+                  {bearingLabel(frame.heading)}
                 </span>
               )}
               {shotYear(frame.shotDate) && (
                 <span className="street-view-badge street-view-badge-muted">
-                  Imagery {shotYear(frame.shotDate)}
+                  {shotYear(frame.shotDate)}
                 </span>
               )}
             </div>
 
-            {!isFollowing && usable.length > 1 && (
+            {/* What was reported at this exact spot. */}
+            {worst ? (
+              <div
+                className={`street-view-hazard${SEVERE.has(worst.category) ? " street-view-hazard-severe" : ""}`}
+                role="status"
+              >
+                <WarningOctagon size={16} weight="fill" aria-hidden="true" />
+                <div>
+                  <strong>
+                    {worst.categoryLabel || worst.description || "Reported incident"}
+                    {hazards.length > 1 ? ` +${hazards.length - 1} more` : ""}
+                  </strong>
+                  <span>
+                    {worst.generalizedLocation || "Near this spot"} ·{" "}
+                    {whenLabel(worst.recencyDays)}
+                  </span>
+                </div>
+              </div>
+            ) : (
+              <div className="street-view-hazard street-view-hazard-clear" role="status">
+                <ShieldCheck size={16} weight="fill" aria-hidden="true" />
+                <div>
+                  <strong>No reports at this spot</strong>
+                </div>
+              </div>
+            )}
+
+            {usable.length > 1 && (
               <div className="street-view-nav">
                 <button
                   type="button"
-                  onClick={() => {
-                    setPlaying(false);
-                    setIndex((current) => (current - 1 + usable.length) % usable.length);
-                  }}
+                  onClick={() => goTo(safeIndex - 1)}
                   aria-label="Previous point along the route"
                 >
-                  <CaretLeft size={15} weight="bold" aria-hidden="true" />
+                  <CaretLeft size={14} weight="bold" aria-hidden="true" />
                 </button>
                 <span aria-live="polite">
-                  {safeIndex + 1} / {usable.length}
+                  {safeIndex + 1}/{usable.length}
                 </span>
                 <button
                   type="button"
-                  onClick={() => {
-                    setPlaying(false);
-                    setIndex((current) => (current + 1) % usable.length);
-                  }}
+                  onClick={() => goTo(safeIndex + 1)}
                   aria-label="Next point along the route"
                 >
-                  <CaretRight size={15} weight="bold" aria-hidden="true" />
+                  <CaretRight size={14} weight="bold" aria-hidden="true" />
                 </button>
               </div>
             )}
@@ -280,16 +348,42 @@ export default function StreetLevelView({
         )}
       </div>
 
+      {/* Hazard rail: every sampled point along the route, flagged where a past
+          report sits nearby. Doubles as the scrubber. */}
+      {usable.length > 1 && (
+        <div
+          className="street-view-rail"
+          role="group"
+          aria-label="Points along the route, marked where incidents were reported"
+        >
+          {usable.map((item, i) => {
+            const list = hazardsByFrame[i] ?? [];
+            const severe = list.some((h) => SEVERE.has(h.category));
+            const tone = list.length === 0 ? "clear" : severe ? "severe" : "warn";
+            return (
+              <button
+                key={item.id}
+                type="button"
+                className={`street-view-tick street-view-tick-${tone}${i === safeIndex ? " is-current" : ""}`}
+                onClick={() => goTo(i)}
+                aria-label={
+                  list.length === 0
+                    ? `Point ${i + 1}: no reports nearby`
+                    : `Point ${i + 1}: ${list.length} report${list.length === 1 ? "" : "s"} nearby`
+                }
+                aria-current={i === safeIndex ? "true" : undefined}
+              />
+            );
+          })}
+        </div>
+      )}
+
       <footer className="street-view-foot">
-        <span>
-          {frame
-            ? metadata?.attribution ?? "Imagery © KartaView contributors"
-            : "Street-level imagery is community contributed and may be out of date."}
-        </span>
-        {frame && externalUrl && (
+        <span>{metadata?.attribution ?? "Imagery © KartaView contributors"}</span>
+        {externalUrl && (
           <a href={externalUrl} target="_blank" rel="noreferrer">
-            Google Street View
-            <ArrowSquareOut size={13} weight="bold" aria-hidden="true" />
+            Street View
+            <ArrowSquareOut size={12} weight="bold" aria-hidden="true" />
           </a>
         )}
       </footer>

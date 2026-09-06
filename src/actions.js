@@ -357,7 +357,12 @@ export function pushLocation(location, extra = {}) {
   const { trip, locationUpdates, settings, checkin, simulation } = getState();
   if (!trip || trip.status === 'completed' || trip.status === 'cancelled') return;
   const now = Date.now();
-  const eta = remainingMinutes(location, trip.route.points, trip.route.durationMinutes);
+  const eta = remainingMinutes(
+    location,
+    trip.route.points,
+    trip.route.durationMinutes,
+    trip.route.legs
+  );
   const offRouteMeters = Math.round(distanceFromRoute(location, trip.route.points));
   const measuredElapsedSeconds = trip.lastSeenAt
     ? Math.max(0, (now - trip.lastSeenAt) / 1000)
@@ -417,3 +422,42 @@ export function pushLocation(location, extra = {}) {
 
   if (triggers.length > 0) openCheckin(triggers[0]);
 }
+
+/**
+ * A hazard reported from inside the app. Stored in the same shape the incident
+ * feed uses so it flows through scoring, the map and the street-level view
+ * without any special casing.
+ */
+export function reportHazard({ category = 'user_reported', description = '', location }) {
+  const { reports } = getState();
+  if (!Array.isArray(location) || location.length < 2) return null;
+
+  const entry = {
+    id: createId('report'),
+    category,
+    type: category,
+    categoryLabel: HAZARD_LABELS[category] || 'Community report',
+    description: description.trim() || HAZARD_LABELS[category] || 'Community report',
+    generalizedLocation: 'Reported from this app',
+    severity: category === 'violent_crime' ? 4 : 2,
+    severityLabel: category === 'violent_crime' ? 'high' : 'moderate',
+    recencyDays: 0,
+    reportedAt: new Date().toISOString(),
+    lat: Number(location[0]),
+    lng: Number(location[1]),
+    radiusMeters: 120,
+    source: 'Community report',
+    isCommunity: true
+  };
+
+  setState({ reports: [entry, ...reports].slice(0, 100) });
+  return entry;
+}
+
+export const HAZARD_LABELS = {
+  user_reported: 'Felt unsafe',
+  violent_crime: 'Harassment or threat',
+  low_light: 'Broken or missing lighting',
+  collision: 'Traffic hazard',
+  property_crime: 'Vandalism or theft'
+};

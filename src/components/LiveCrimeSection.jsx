@@ -36,7 +36,7 @@ function whenLabel(days) {
  * router scores against. Showing the real records — with dates and blocks —
  * makes the safety claim concrete instead of decorative.
  */
-export default function LiveCrimeSection({ onPlanClick }) {
+export default function LiveCrimeSection({ onPlanClick, children }) {
   const [incidents, setIncidents] = useState([]);
   const [state, setState] = useState("loading");
   const [meta, setMeta] = useState(null);
@@ -91,7 +91,7 @@ export default function LiveCrimeSection({ onPlanClick }) {
     () =>
       [...incidents]
         .sort((a, b) => (a.recencyDays ?? 999) - (b.recencyDays ?? 999))
-        .slice(0, 6),
+        .slice(0, 4),
     [incidents],
   );
 
@@ -214,6 +214,8 @@ export default function LiveCrimeSection({ onPlanClick }) {
             </ul>
           </div>
         )}
+
+        {children ? <div className="crime-divider">{children}</div> : null}
 
         <div className="crime-foot">
           <p>

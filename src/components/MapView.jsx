@@ -2,42 +2,65 @@ import { useEffect, useMemo, useRef } from "react";
 import {
   CircleMarker,
   MapContainer,
+  Marker,
   Polyline,
   TileLayer,
   Tooltip,
   useMap,
 } from "react-leaflet";
+import L from "leaflet";
+import { formatMinutes } from "../logic/duration.js";
 
 const DEFAULT_CENTER = [47.6815, -122.128];
 const MAX_FIT_ZOOM = 16;
 
 const FACTOR_STYLES = {
   property_crime: {
-    color: "#806d5a",
+    color: "#f59e0b",
     label: "Recent property incident",
   },
   violent_crime: {
-    color: "#955f59",
+    color: "#e8402c",
     label: "Recent personal-safety incident",
   },
   collision: {
-    color: "#a8793f",
+    color: "#fb923c",
     label: "Traffic conflict",
   },
   low_light: {
-    color: "#4f7078",
+    color: "#3b9dff",
     label: "Lighting gap",
   },
   user_reported: {
-    color: "#6f687d",
+    color: "#a970ff",
     label: "Community observation",
   },
 };
 
 const FALLBACK_FACTOR_STYLE = {
-  color: "#66736d",
+  color: "#ff5c7a",
   label: "Environmental factor",
 };
+
+/**
+ * A filled warning triangle in the hazard's colour, as a Leaflet divIcon.
+ * Plain circles read as map decoration; a warning glyph reads as a warning.
+ */
+function hazardDivIcon(color, severity, type) {
+  const size = 20 + Math.round(severity * 1.8);
+  return L.divIcon({
+    className: "map-hazard-wrap",
+    iconSize: [size, size],
+    iconAnchor: [size / 2, size / 2],
+    html:
+      `<span class="map-hazard map-hazard--${type}" style="--hazard:${color}">` +
+      '<svg viewBox="0 0 24 24" aria-hidden="true">' +
+      '<path class="map-hazard-tri" d="M12 2.6 23.1 21.4H0.9Z"/>' +
+      '<rect class="map-hazard-mark" x="10.9" y="8.4" width="2.2" height="6.6" rx="1.1"/>' +
+      '<circle class="map-hazard-mark" cx="12" cy="18.2" r="1.35"/>' +
+      "</svg></span>",
+  });
+}
 
 const ROUTE_COLORS = {
   Fastest: "#e2564a",
@@ -273,7 +296,7 @@ function RouteLine({ route, positions, state, onRouteSelect }) {
   const routeName = route.label ? `${route.label} route` : "Route option";
   const detail = [
     isFiniteNumber(route.durationMinutes)
-      ? `${route.durationMinutes} minutes`
+      ? formatMinutes(route.durationMinutes, { long: true })
       : null,
     isFiniteNumber(route.distanceKm) ? `${route.distanceKm} kilometers` : null,
   ]
@@ -386,7 +409,10 @@ function FactorMarker({ factor }) {
   const severity = isFiniteNumber(factor.severity)
     ? Math.max(1, Math.min(5, Number(factor.severity)))
     : 1;
-  const radius = 3.5 + severity * 0.45;
+  const icon = useMemo(
+    () => hazardDivIcon(style.color, severity, factor.type || "other"),
+    [style.color, severity, factor.type],
+  );
   const recency = isFiniteNumber(factor.recencyDays)
     ? `Observed ${factor.recencyDays} days ago`
     : null;
@@ -419,18 +445,11 @@ function FactorMarker({ factor }) {
   }, [accessibleLabel]);
 
   return (
-    <CircleMarker
+    <Marker
       ref={markerRef}
-      center={[Number(factor.lat), Number(factor.lng)]}
-      radius={radius}
-      pathOptions={{
-        color: "#ffffff",
-        fillColor: style.color,
-        fillOpacity: 0.9,
-        opacity: 0.96,
-        weight: 1.75,
-        className: `map-factor-marker map-factor-marker--${factor.type || "other"}`,
-      }}
+      position={[Number(factor.lat), Number(factor.lng)]}
+      icon={icon}
+      keyboard={false}
     >
       <Tooltip className="map-factor-tooltip">
         <strong>{factor.name || style.label}</strong>
@@ -451,7 +470,7 @@ function FactorMarker({ factor }) {
           </span>
         )}
       </Tooltip>
-    </CircleMarker>
+    </Marker>
   );
 }
 
@@ -638,7 +657,7 @@ function MapLegend({ factors, routes, activeRouteId }) {
               <strong className="map-route-status__value">
                 {displayRoute.label || "Selected"}
                 {isFiniteNumber(displayRoute.durationMinutes)
-                  ? ` · ${displayRoute.durationMinutes} min`
+                  ? ` · ${formatMinutes(displayRoute.durationMinutes)}`
                   : ""}
               </strong>
             )}
