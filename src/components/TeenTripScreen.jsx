@@ -22,6 +22,7 @@ import {
 } from "@phosphor-icons/react";
 import RouteCard from "./RouteCard.jsx";
 import CheckinSheet from "./CheckinSheet.jsx";
+import SafetyAlertsPanel from "./SafetyAlertsPanel.jsx";
 import {
   startTrip,
   endTrip,
@@ -245,8 +246,26 @@ function ActiveTripView({ trip, checkin, locationUpdates, simulation }) {
       ];
 
   return (
-    <div className="active-trip-layout">
-      <aside className="active-trip-panel">
+    <div className="map-viewport">
+      {/* Full-screen map base layer */}
+      <div className="map-base">
+        <MapView
+          zones={trip.route.contextFactors || []}
+          places={places}
+          routes={[trip.route]}
+          activeRouteId={trip.route.routeId}
+          teenLocation={trip.location}
+          trail={trail}
+          follow
+          height="100%"
+        />
+        <div className="map-trip-chip">
+          <ShieldCheck size={17} weight="fill" aria-hidden="true" />
+          Planned route visible to your guardian
+        </div>
+      </div>
+
+      <aside className="sidebar-float active-sidebar-float">
         <div className="active-trip-topline">
           <div className="live-indicator">
             <span />
@@ -341,54 +360,47 @@ function ActiveTripView({ trip, checkin, locationUpdates, simulation }) {
         <div className="active-actions">
           <button
             type="button"
-            className="button button-lime"
+            className="button button-lime button-large"
             onClick={() => endTrip("completed")}
+            title="Tell your guardian you've safely arrived at your destination"
           >
-            <Check size={18} weight="bold" aria-hidden="true" />
-            I arrived
+            <Check size={20} weight="bold" aria-hidden="true" />
+            I arrived safely
           </button>
+          <div className="action-row">
+            <button
+              type="button"
+              className="button button-soft"
+              onClick={() => {
+                const current = getState();
+                setState({
+                  simulation: {
+                    ...current.simulation,
+                    offRoute: false,
+                    stopped: false,
+                    minutesStopped: 0,
+                    index: nearestIndex(current.trip.location, current.trip.route.points),
+                  },
+                });
+              }}
+              title="Return to the planned route"
+            >
+              <Path size={17} weight="bold" aria-hidden="true" />
+              Back on route
+            </button>
+          </div>
           <button
             type="button"
-            className="button button-soft"
-            onClick={() => {
-              const current = getState();
-              setState({
-                simulation: {
-                  ...current.simulation,
-                  offRoute: false,
-                  stopped: false,
-                  minutesStopped: 0,
-                  index: nearestIndex(current.trip.location, current.trip.route.points),
-                },
-              });
-            }}
+            className="button button-danger button-urgent"
+            onClick={sendSos}
+            title="Send immediate alert to your guardian"
+            aria-label="Send emergency alert to guardian"
           >
-            <Path size={18} weight="bold" aria-hidden="true" />
-            Back on route
-          </button>
-          <button type="button" className="button button-danger" onClick={sendSos}>
-            <Siren size={18} weight="fill" aria-hidden="true" />
-            Need help
+            <Siren size={20} weight="fill" aria-hidden="true" />
+            I need help NOW
           </button>
         </div>
       </aside>
-
-      <div className="active-map-panel">
-        <MapView
-          zones={trip.route.contextFactors || []}
-          places={places}
-          routes={[trip.route]}
-          activeRouteId={trip.route.routeId}
-          teenLocation={trip.location}
-          trail={trail}
-          follow
-          height={680}
-        />
-        <div className="map-trip-chip">
-          <ShieldCheck size={17} weight="fill" aria-hidden="true" />
-          Planned route visible to your guardian
-        </div>
-      </div>
 
       <CheckinSheet
         checkin={checkin}
@@ -545,8 +557,51 @@ export default function TeenTripScreen() {
   }
 
   return (
-    <div className="route-planner-layout">
-      <aside className="route-planner-sidebar">
+    <div className="map-viewport">
+      {/* Full-screen map base layer */}
+      <div className="map-base">
+        <MapView
+          zones={incidents}
+          places={places}
+          routes={routes}
+          activeRouteId={selectedRoute?.routeId}
+          onRouteSelect={(route) => setSelectedRoute(route)}
+          height="100%"
+        />
+        {!plan && !isComparing && (
+          <div className="map-resting-message planner-map-message">
+            <Path size={24} weight="bold" aria-hidden="true" />
+            <div>
+              <strong>Ready for any point-to-point trip</strong>
+              <span>Enter place names, full addresses, or latitude/longitude pairs.</span>
+            </div>
+          </div>
+        )}
+        {selectedRoute && (
+          <div className="map-selection-summary">
+            <span className="map-selection-icon">
+              {travelMode === "transit" ? (
+                <Bus size={20} weight="fill" aria-hidden="true" />
+              ) : (
+                <Footprints size={20} weight="fill" aria-hidden="true" />
+              )}
+            </span>
+            <div>
+              <span>{selectedRoute.recommended ? "Recommended" : "Selected route"}</span>
+              <strong>
+                {selectedRoute.durationMinutes} min · {selectedRoute.label}
+              </strong>
+            </div>
+            <div className="map-condition-score">
+              <span>Conditions</span>
+              <strong>{routeCondition(selectedRoute)}</strong>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Floating left sidebar */}
+      <aside className="sidebar-float">
         <div className="planner-sidebar-head">
           <p>Where are you going?</p>
           <h2>Plan your trip</h2>
@@ -713,6 +768,14 @@ export default function TeenTripScreen() {
               ))}
             </div>
 
+            {incidents.length > 0 && (
+              <SafetyAlertsPanel
+                incidents={incidents}
+                location={plan.origin}
+                destination={plan.destination}
+              />
+            )}
+
             <div className="score-disclaimer">
               <Info size={16} weight="fill" aria-hidden="true" />
               <p>
@@ -754,47 +817,6 @@ export default function TeenTripScreen() {
           </div>
         )}
       </aside>
-
-      <div className="route-map-panel">
-        <MapView
-          zones={incidents}
-          places={places}
-          routes={routes}
-          activeRouteId={selectedRoute?.routeId}
-          onRouteSelect={(route) => setSelectedRoute(route)}
-          height={720}
-        />
-        {!plan && !isComparing && (
-          <div className="map-resting-message planner-map-message">
-            <Path size={24} weight="bold" aria-hidden="true" />
-            <div>
-              <strong>Ready for any point-to-point trip</strong>
-              <span>Enter place names, full addresses, or latitude/longitude pairs.</span>
-            </div>
-          </div>
-        )}
-        {selectedRoute && (
-          <div className="map-selection-summary">
-            <span className="map-selection-icon">
-              {travelMode === "transit" ? (
-                <Bus size={20} weight="fill" aria-hidden="true" />
-              ) : (
-                <Footprints size={20} weight="fill" aria-hidden="true" />
-              )}
-            </span>
-            <div>
-              <span>{selectedRoute.recommended ? "Recommended" : "Selected route"}</span>
-              <strong>
-                {selectedRoute.durationMinutes} min · {selectedRoute.label}
-              </strong>
-            </div>
-            <div className="map-condition-score">
-              <span>Conditions</span>
-              <strong>{routeCondition(selectedRoute)}</strong>
-            </div>
-          </div>
-        )}
-      </div>
 
       {consentOpen && (
         <StartTripSheet

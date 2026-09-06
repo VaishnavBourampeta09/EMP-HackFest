@@ -45,7 +45,10 @@ export default function PlannerApp() {
     const id = window.setInterval(() => {
       const state = getState();
       const current = state.trip;
-      if (!current || (current.status !== "active" && current.status !== "alert")) {
+      if (
+        !current ||
+        (current.status !== "active" && current.status !== "alert")
+      ) {
         return;
       }
 
@@ -154,9 +157,10 @@ export default function PlannerApp() {
   };
 
   return (
-    <div className="site-shell planner-page-shell" id="top">
-      <header className="nav-wrap">
-        <nav className="site-nav" aria-label="Planner navigation">
+    <div className="planner-shell" id="top">
+      {/* Floating glassmorphic navigation header */}
+      <header className="planner-nav-float">
+        <nav className="planner-nav" aria-label="Planner navigation">
           <Link className="brand" href="/" aria-label="Escort home">
             <BrandMark />
           </Link>
@@ -185,73 +189,46 @@ export default function PlannerApp() {
               <UsersThree size={17} weight="bold" aria-hidden="true" />
               <span>Guardian</span>
               {mode !== "parent" && checkin?.status === "expired" && (
-                <span className="notification-dot" aria-label="New guardian alert" />
+                <span
+                  className="notification-dot"
+                  aria-label="New guardian alert"
+                />
               )}
             </button>
+          </div>
+
+          <div className="planner-nav-status" aria-live="polite">
+            <span className={active ? "status-orb status-orb-live" : "status-orb"} />
+            <span>{active ? "Trip active" : "Ready to plan"}</span>
           </div>
         </nav>
       </header>
 
-      <main className="planner-page-main">
-        <section className="planner-route-section" aria-labelledby="planner-title">
-          <div className="planner-route-heading">
-            <div>
-              <p className="section-kicker">Live route intelligence</p>
-              <h1 id="planner-title">
-                {mode === "teen" ? "Plan the whole trip." : "See what changed."}
-              </h1>
-            </div>
-            <p>
-              {mode === "teen"
-                ? "Search any starting point and destination, compare walking or transit options, and inspect the real signals behind the recommendation."
-                : "Follow the selected route, expected arrival, and stateful alerts without turning the experience into always-on surveillance."}
-            </p>
-          </div>
+      {/* Floating simulator toolbar — top-right corner of map */}
+      <div className="simulator-float" aria-label="Trip simulator controls">
+        <span className="simulator-float-label">Demo</span>
+        <div className="simulator-actions">
+          {controls.map((control) => {
+            const Icon = control.icon;
+            return (
+              <button
+                key={control.label}
+                type="button"
+                disabled={control.disabled}
+                onClick={control.onClick}
+                title={control.label}
+              >
+                <Icon size={15} weight="bold" aria-hidden="true" />
+                <span>{control.label}</span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
 
-          <div className={`product-frame product-frame-${mode}`}>
-            <header className="product-bar">
-              <div className="product-identity">
-                <BrandMark variant="glyph" />
-                <div>
-                  <strong>Escort</strong>
-                  <span>{mode === "teen" ? "Teen trip planner" : "Guardian dashboard"}</span>
-                </div>
-              </div>
-
-              <div className="product-status" aria-live="polite">
-                <span className={active ? "status-orb status-orb-live" : "status-orb"} />
-                {active ? "Trip monitoring active" : "Ready to plan"}
-              </div>
-            </header>
-
-            <div className="simulator-toolbar" aria-label="Trip simulator controls">
-              <div className="simulator-copy">
-                <span>Guardian state-machine demo</span>
-                <strong>{active ? "Try a trip event" : "Start a trip to unlock events"}</strong>
-              </div>
-              <div className="simulator-actions">
-                {controls.map((control) => {
-                  const Icon = control.icon;
-                  return (
-                    <button
-                      key={control.label}
-                      type="button"
-                      disabled={control.disabled}
-                      onClick={control.onClick}
-                    >
-                      <Icon size={16} weight="bold" aria-hidden="true" />
-                      <span>{control.label}</span>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            <div className="product-content">
-              {mode === "teen" ? <TeenTripScreen /> : <ParentDashboard />}
-            </div>
-          </div>
-        </section>
+      {/* Full-viewport map canvas — each screen renders the map as base layer */}
+      <main className="planner-map-main" aria-label="Trip planner">
+        {mode === "teen" ? <TeenTripScreen /> : <ParentDashboard />}
       </main>
     </div>
   );
