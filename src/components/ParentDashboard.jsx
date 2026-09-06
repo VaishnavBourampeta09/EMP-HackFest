@@ -108,7 +108,7 @@ export default function ParentDashboard() {
             </div>
             <h3>Privacy is the default state.</h3>
             <p>
-              GuardianRoute is trip-scoped, not always-on tracking. Switch to
+              Escort is trip-scoped, not always-on tracking. Switch to
               the Teen view, choose a route, and start a Safe Trip to see this
               dashboard update live.
             </p>
@@ -274,7 +274,7 @@ export default function ParentDashboard() {
               <div>
                 <strong>Quiet is the intended state.</strong>
                 <p>
-                  GuardianRoute will check with {users.teen.name} before asking
+                  Escort will check with {users.teen.name} before asking
                   you to act.
                 </p>
               </div>

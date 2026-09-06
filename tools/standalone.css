@@ -1,0 +1,10 @@
+.svg-map { width: 100%; display: block; background: #eef2f7; }
+.svg-map .street { stroke: #dbe3ee; stroke-width: 1.4; fill: none; }
+.svg-map .river { stroke: #cfe3f5; stroke-width: 6; fill: none; stroke-linecap: round; }
+.svg-map text { font-size: 7px; fill: #64748b; font-family: inherit; }
+.map-legend { display: flex; flex-wrap: wrap; gap: 10px; font-size: 11px; color: var(--muted); padding-top: 6px; }
+.map-legend span { display: inline-flex; align-items: center; gap: 5px; }
+.swatch { width: 10px; height: 10px; border-radius: 3px; display: inline-block; }
+.teen-dot { fill: #2563eb; stroke: #fff; stroke-width: 2.5; }
+.route-line { fill: none; stroke-linecap: round; stroke-linejoin: round; }
+.trail-line { fill: none; stroke: #0f172a; stroke-width: 1.6; stroke-dasharray: 3 4; }

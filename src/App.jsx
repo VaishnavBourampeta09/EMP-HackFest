@@ -20,6 +20,12 @@ function scrollToId(id) {
   });
 }
 
+const heroStats = [
+  { value: "50–100 m", label: "Route segment resolution" },
+  { value: "6", label: "Public data sources scored" },
+  { value: "Trip-scoped", label: "Sharing starts and ends with the trip" },
+];
+
 export default function App() {
   const appRef = useRef(null);
   const router = useRouter();
@@ -31,25 +37,23 @@ export default function App() {
         { reduceMotion: "(prefers-reduced-motion: reduce)" },
         (context) => {
           if (context.conditions.reduceMotion) {
-            gsap.set([".hero-reveal", ".hero-visual"], { clearProps: "all" });
+            gsap.set([".hero-reveal", ".hero-panel"], { clearProps: "all" });
             return;
           }
 
           gsap.from(".hero-reveal", {
-            y: 42,
+            y: 18,
             autoAlpha: 0,
-            duration: 0.9,
-            stagger: 0.09,
-            ease: "power3.out",
+            duration: 0.7,
+            stagger: 0.07,
+            ease: "power2.out",
           });
-          gsap.from(".hero-visual", {
-            y: 52,
-            scale: 0.88,
-            rotation: 1.8,
+          gsap.from(".hero-panel", {
+            y: 24,
             autoAlpha: 0,
-            duration: 1.2,
-            delay: 0.16,
-            ease: "power3.out",
+            duration: 0.8,
+            delay: 0.12,
+            ease: "power2.out",
           });
         },
       );
@@ -62,9 +66,8 @@ export default function App() {
     <div ref={appRef} className="site-shell" id="top">
       <header className="nav-wrap">
         <nav className="site-nav" aria-label="Primary navigation">
-          <Link className="brand" href="/" aria-label="GuardianRoute home">
+          <Link className="brand" href="/" aria-label="Escort home">
             <BrandMark />
-            <span className="brand-name">GuardianRoute</span>
           </Link>
 
           <div className="nav-links" aria-label="Page sections">
@@ -78,66 +81,102 @@ export default function App() {
 
           <Link className="nav-planner-link" href="/planner">
             Open planner
-            <ArrowRight size={16} weight="bold" aria-hidden="true" />
+            <ArrowRight size={15} weight="bold" aria-hidden="true" />
           </Link>
         </nav>
       </header>
 
-      <main className="page-main overflow-x-hidden w-full max-w-full">
+      <main className="page-main">
         <section className="hero" aria-labelledby="hero-title">
-          <div className="hero-ambient" aria-hidden="true" />
-          <div className="hero-copy">
-            <p className="hero-overline hero-reveal">Navigate normally. Arrive thoughtfully.</p>
-            <h1 id="hero-title" className="hero-title max-w-6xl hero-reveal">
-              The route home, chosen for more than
-              <span className="inline-street-image" aria-hidden="true" />
-              speed.
-            </h1>
-            <p className="hero-description hero-reveal">
-              GuardianRoute compares reasonable walking and transit options,
-              explains the conditions behind its recommendation, and notices
-              when an active trip stops going as planned.
-            </p>
-            <div className="hero-actions hero-reveal">
-              <Link className="button button-lime button-large" href="/planner">
-                Plan a safe route
-                <Path size={19} weight="bold" aria-hidden="true" />
-              </Link>
-              <button
-                type="button"
-                className="button button-ink button-large"
-                onClick={() => scrollToId("guardian-story")}
-              >
-                Watch Guardian respond
-              </button>
+          <div className="hero-grid">
+            <div className="hero-copy">
+              <p className="hero-overline hero-reveal">
+                Safety-aware routing for Redmond
+              </p>
+              <h1 id="hero-title" className="hero-title hero-reveal">
+                Maps get you home.
+                <span>Escort makes sure you get home safely.</span>
+              </h1>
+              <p className="hero-description hero-reveal">
+                Escort compares the walking and transit routes you would
+                actually take, explains the conditions behind its
+                recommendation, and notices when a trip in progress stops going
+                as planned.
+              </p>
+              <div className="hero-actions hero-reveal">
+                <Link className="button button-primary button-large" href="/planner">
+                  Plan a route
+                  <Path size={18} weight="bold" aria-hidden="true" />
+                </Link>
+                <button
+                  type="button"
+                  className="button button-outline button-large"
+                  onClick={() => scrollToId("guardian-story")}
+                >
+                  See how Guardian responds
+                </button>
+              </div>
+            </div>
+
+            <div className="hero-panel">
+              <div className="hero-panel-head">
+                <span className="hero-panel-eyebrow">Tonight · 9:42 PM</span>
+                <span className="hero-panel-chip">Recommended</span>
+              </div>
+
+              <div className="hero-route">
+                <div className="hero-route-point">
+                  <span className="hero-route-dot" aria-hidden="true" />
+                  <div>
+                    <span>From</span>
+                    <strong>Redmond Library</strong>
+                  </div>
+                </div>
+                <div className="hero-route-connector" aria-hidden="true" />
+                <div className="hero-route-point">
+                  <span className="hero-route-dot hero-route-dot-end" aria-hidden="true" />
+                  <div>
+                    <span>To</span>
+                    <strong>Home · 148th Ave NE</strong>
+                  </div>
+                </div>
+              </div>
+
+              <dl className="hero-panel-metrics">
+                <div>
+                  <dt>Walk time</dt>
+                  <dd>21 min</dd>
+                </div>
+                <div>
+                  <dt>Lit coverage</dt>
+                  <dd>92%</dd>
+                </div>
+                <div>
+                  <dt>Route score</dt>
+                  <dd>8.6</dd>
+                </div>
+              </dl>
+
+              <p className="hero-panel-reason">
+                Chosen over a 17-minute route with two unlit blocks and a recent
+                late-night incident report.
+              </p>
+
+              <p className="hero-panel-privacy">
+                <ShieldCheck size={17} weight="fill" aria-hidden="true" />
+                Location is shared only while the trip is active.
+              </p>
             </div>
           </div>
 
-          <div className="hero-visual" aria-label="An evening route home in Redmond">
-            <div className="hero-photo" />
-            <div className="hero-photo-wash" />
-            <svg className="hero-route-line" viewBox="0 0 620 540" aria-hidden="true">
-              <path
-                className="route-shadow"
-                d="M64 430C156 394 132 302 238 290s94-112 184-132 84-72 139-92"
-              />
-              <path d="M64 430C156 394 132 302 238 290s94-112 184-132 84-72 139-92" />
-              <circle cx="64" cy="430" r="11" />
-              <circle cx="561" cy="66" r="11" />
-            </svg>
-            <div className="hero-location hero-location-start">
-              <span>From</span>
-              <strong>Redmond Library</strong>
-            </div>
-            <div className="hero-location hero-location-end">
-              <span>To</span>
-              <strong>Home</strong>
-            </div>
-            <div className="hero-privacy-note">
-              <ShieldCheck size={20} weight="fill" aria-hidden="true" />
-              <span>Shared only during an active trip</span>
-            </div>
-          </div>
+          <ul className="hero-stats hero-reveal">
+            {heroStats.map(({ value, label }) => (
+              <li key={label}>
+                <strong>{value}</strong>
+                <span>{label}</span>
+              </li>
+            ))}
+          </ul>
         </section>
 
         <ProductStory

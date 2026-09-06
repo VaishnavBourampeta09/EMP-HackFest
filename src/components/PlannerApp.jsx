@@ -157,9 +157,8 @@ export default function PlannerApp() {
     <div className="site-shell planner-page-shell" id="top">
       <header className="nav-wrap">
         <nav className="site-nav" aria-label="Planner navigation">
-          <Link className="brand" href="/" aria-label="GuardianRoute home">
+          <Link className="brand" href="/" aria-label="Escort home">
             <BrandMark />
-            <span className="brand-name">GuardianRoute</span>
           </Link>
 
           <Link className="planner-back-link" href="/">
@@ -212,9 +211,9 @@ export default function PlannerApp() {
           <div className={`product-frame product-frame-${mode}`}>
             <header className="product-bar">
               <div className="product-identity">
-                <BrandMark compact />
+                <BrandMark variant="glyph" />
                 <div>
-                  <strong>GuardianRoute</strong>
+                  <strong>Escort</strong>
                   <span>{mode === "teen" ? "Teen trip planner" : "Guardian dashboard"}</span>
                 </div>
               </div>

@@ -122,7 +122,7 @@ function StartTripSheet({ route, guardianName, onClose, onConfirm }) {
         <h2 id="consent-title">Start this Safe Trip?</h2>
         <p className="sheet-reason">
           Your location is shared with {guardianName} only while this trip is
-          active. GuardianRoute looks for sustained changes, not single noisy
+          active. Escort looks for sustained changes, not single noisy
           readings.
         </p>
 
@@ -413,6 +413,7 @@ export default function TeenTripScreen() {
   const [isComparing, setIsComparing] = useState(false);
   const [planningError, setPlanningError] = useState(null);
   const [isLocating, setIsLocating] = useState(false);
+  const [replanToken, setReplanToken] = useState(0);
   const requestRef = useRef(null);
 
   const currentTime = useMemo(() => {
@@ -452,7 +453,7 @@ export default function TeenTripScreen() {
       const payload = await response.json();
       if (!response.ok || !payload.ok) {
         throw new Error(
-          payload?.error?.message || "GuardianRoute could not plan this trip.",
+          payload?.error?.message || "Escort could not plan this trip.",
         );
       }
 
@@ -486,6 +487,17 @@ export default function TeenTripScreen() {
   }, []);
 
   useEffect(() => () => requestRef.current?.abort(), []);
+
+  useEffect(() => {
+    if (replanToken === 0) return;
+    compareRoutes();
+    // Deliberate single-click changes (travel mode, departure time) bump the
+    // token so results refresh straight away. compareRoutes is excluded on
+    // purpose: it is rebuilt on every input change, and typing must not replan.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [replanToken]);
+
+  const replanNow = () => setReplanToken((token) => token + 1);
 
   useEffect(() => {
     setSelectedRoute(routes.find((route) => route.recommended) || routes[0] || null);
@@ -607,6 +619,7 @@ export default function TeenTripScreen() {
                 onClick={() => {
                   setDestinationName(`${place.name}, Redmond, WA`);
                   invalidatePlan();
+                  replanNow();
                 }}
               >
                 {place.name}
@@ -617,8 +630,10 @@ export default function TeenTripScreen() {
         <TravelModeToggle
           value={travelMode}
           onChange={(nextMode) => {
+            if (nextMode === travelMode) return;
             setTravelMode(nextMode);
             invalidatePlan();
+            replanNow();
           }}
         />
 

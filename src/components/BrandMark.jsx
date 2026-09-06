@@ -1,12 +1,33 @@
-export default function BrandMark({ compact = false }) {
+/**
+ * The Escort wordmark is a flat PNG on a white plate, so on light surfaces it is
+ * composited with `multiply` (see .brand-lockup img) to drop the plate. Dark
+ * surfaces get the glyph on its own instead, drawn as an SVG so it stays crisp
+ * and inherits colour.
+ */
+export default function BrandMark({ variant = "wordmark", className = "" }) {
+  if (variant === "glyph") {
+    return (
+      <span className={`brand-glyph ${className}`.trim()} aria-hidden="true">
+        <svg viewBox="0 0 32 32" role="presentation">
+          <circle className="brand-glyph-ring" cx="16" cy="16" r="12.5" />
+          <path
+            className="brand-glyph-arrow"
+            d="M21.8 10.2 13.4 13.6a.5.5 0 0 0-.08.88l3.03 1.94 1.94 3.03a.5.5 0 0 0 .88-.08l3.4-8.4a.5.5 0 0 0-.65-.65Z"
+          />
+        </svg>
+      </span>
+    );
+  }
+
   return (
-    <span className={compact ? "brand-mark brand-mark-compact" : "brand-mark"} aria-hidden="true">
-      <svg viewBox="0 0 42 42" role="presentation">
-        <path d="M8 10.5 21 5l13 5.5v9.8c0 8.4-5.4 13.9-13 16.7C13.4 34.2 8 28.7 8 20.3Z" />
-        <path d="M14.5 26.5c3.6-6.3 7.2-9.7 13.5-12" />
-        <circle cx="14.5" cy="26.5" r="2.2" />
-        <circle cx="28" cy="14.5" r="2.2" />
-      </svg>
+    <span className={`brand-lockup ${className}`.trim()}>
+      <img
+        src="/escort-logo.png"
+        alt="Escort"
+        width={2639}
+        height={694}
+        decoding="async"
+      />
     </span>
   );
 }

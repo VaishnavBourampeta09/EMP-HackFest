@@ -37,8 +37,10 @@ function writeCache(key, value) {
 }
 
 function userAgent() {
-  const contact = process.env.GUARDIANROUTE_CONTACT_EMAIL;
-  return contact ? `GuardianRoute/0.1 (${contact})` : 'GuardianRoute/0.1 (hackathon prototype)';
+  // GUARDIANROUTE_CONTACT_EMAIL is the pre-rename name, still honoured.
+  const contact =
+    process.env.ESCORT_CONTACT_EMAIL || process.env.GUARDIANROUTE_CONTACT_EMAIL;
+  return contact ? `Escort/0.1 (${contact})` : 'Escort/0.1 (hackathon prototype)';
 }
 
 async function waitForNominatimSlot() {
