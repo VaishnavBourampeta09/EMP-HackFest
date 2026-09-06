@@ -27,7 +27,7 @@ export async function GET(request) {
     });
     const headers = new Headers({
       "Content-Type": "application/geo+json; charset=utf-8",
-      "X-GuardianRoute-Data-Source": collection.metadata.fallback
+      "X-Escort-Data-Source": collection.metadata.fallback
         ? "fallback"
         : "redmond-live",
       "Cache-Control": collection.metadata.fallback

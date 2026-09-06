@@ -40,12 +40,12 @@ const FALLBACK_FACTOR_STYLE = {
 };
 
 const ROUTE_COLORS = {
-  Fastest: "#8a5d64",
-  Balanced: "#a87535",
-  Safer: "#176957",
-  "Direct 221": "#176957",
-  "Fastest 250": "#8a5d64",
-  "221 + 250": "#a87535",
+  Fastest: "#e2564a",
+  Balanced: "#d99524",
+  Safer: "#1b52c0",
+  "Direct 221": "#1b52c0",
+  "Fastest 250": "#e2564a",
+  "221 + 250": "#d99524",
 };
 
 function isFiniteNumber(value) {
@@ -121,12 +121,24 @@ function pointSignature(points) {
     .join(":");
 }
 
+/**
+ * A ResizeObserver callback or a queued effect can still fire after Leaflet has
+ * torn its panes down (switching Teen/Guardian, or leaving the planner). Calling
+ * into the map then throws on `_leaflet_pos`, so every entry point checks that
+ * the map is still live first.
+ */
+function isMapLive(map) {
+  return Boolean(map?._loaded && map.getContainer()?.isConnected);
+}
+
 function moveToPoint(map, point, targetZoom) {
+  if (!isMapLive(map)) return;
   map.stop();
   map.setView(point, targetZoom, { animate: false });
 }
 
 function fitPoints(map, points, fallbackCenter, fallbackZoom) {
+  if (!isMapLive(map)) return;
   const usablePoints = points.filter(isLatLng);
 
   if (usablePoints.length === 0) {
@@ -189,21 +201,26 @@ function MapViewport({
 
   useEffect(
     () => () => {
-      map.stop();
+      if (isMapLive(map)) map.stop();
     },
     [map],
   );
 
   useEffect(() => {
     if (typeof ResizeObserver === "undefined") return undefined;
+    const container = map.getContainer();
+    if (!container) return undefined;
     const observer = new ResizeObserver(() => {
+      if (!isMapLive(map)) return;
       map.invalidateSize({ animate: false, pan: false });
     });
-    observer.observe(map.getContainer());
+    observer.observe(container);
     return () => observer.disconnect();
   }, [map]);
 
   useEffect(() => {
+    if (!isMapLive(map)) return;
+
     if (follow && teenPoint) {
       moveToPoint(map, teenPoint, map.getZoom());
       hadTeenLocation.current = true;
@@ -252,7 +269,7 @@ function RouteLine({ route, positions, state, onRouteSelect }) {
   const isSelected = state === "selected";
   const isUnselected = state === "unselected";
   const isInteractive = typeof onRouteSelect === "function";
-  const color = route.color || ROUTE_COLORS[route.label] || "#315f72";
+  const color = route.color || ROUTE_COLORS[route.label] || "#1b52c0";
   const routeName = route.label ? `${route.label} route` : "Route option";
   const detail = [
     isFiniteNumber(route.durationMinutes)
@@ -322,7 +339,7 @@ function RouteLine({ route, positions, state, onRouteSelect }) {
         positions={positions}
         interactive={false}
         pathOptions={{
-          color: "#fffdf8",
+          color: "#ffffff",
           dashArray: lineOptions.dashArray,
           lineCap: "round",
           lineJoin: "round",
@@ -407,7 +424,7 @@ function FactorMarker({ factor }) {
       center={[Number(factor.lat), Number(factor.lng)]}
       radius={radius}
       pathOptions={{
-        color: "#fffdf8",
+        color: "#ffffff",
         fillColor: style.color,
         fillOpacity: 0.9,
         opacity: 0.96,
@@ -473,14 +490,14 @@ function TransitRouteDetail({ route }) {
         const isWalking = mode === "walking" || mode === "walk";
         const routeColor = /^#[0-9a-f]{6}$/i.test(leg.routeColor || "")
           ? leg.routeColor
-          : "#315f72";
+          : "#1b52c0";
         return (
           <Polyline
             key={leg.legId || `transit-leg-${index}`}
             positions={positions}
             interactive={false}
             pathOptions={{
-              color: isWalking ? "#4f6558" : routeColor,
+              color: isWalking ? "#55617d" : routeColor,
               dashArray: isWalking ? "3 7" : undefined,
               lineCap: "round",
               lineJoin: "round",
@@ -498,8 +515,8 @@ function TransitRouteDetail({ route }) {
           center={stop.point}
           radius={5.5}
           pathOptions={{
-            color: "#fffdf8",
-            fillColor: "#0f5060",
+            color: "#ffffff",
+            fillColor: "#16305f",
             fillOpacity: 1,
             opacity: 1,
             weight: 2.5,
@@ -763,7 +780,7 @@ export default function MapView({
       className="map-shell guardian-map-shell"
       style={{ height }}
       role="region"
-      aria-label="Interactive GuardianRoute trip map"
+      aria-label="Interactive Escort trip map"
     >
       <MapContainer
         center={fallbackCenter}
@@ -792,8 +809,8 @@ export default function MapView({
             center={[Number(place.lat), Number(place.lng)]}
             radius={5.5}
             pathOptions={{
-              color: "#fffdf8",
-              fillColor: "#315f72",
+              color: "#ffffff",
+              fillColor: "#1b52c0",
               fillOpacity: 0.96,
               opacity: 1,
               weight: 2,
@@ -835,7 +852,7 @@ export default function MapView({
             positions={cleanTrail}
             interactive={false}
             pathOptions={{
-              color: "#243a42",
+              color: "#16305f",
               weight: 3,
               opacity: 0.72,
               dashArray: "3 7",
@@ -850,8 +867,8 @@ export default function MapView({
             center={normalizeLatLng(teenLocation)}
             radius={8}
             pathOptions={{
-              color: "#fffdf8",
-              fillColor: "#176957",
+              color: "#ffffff",
+              fillColor: "#1b52c0",
               fillOpacity: 1,
               opacity: 1,
               weight: 3,

@@ -1,17 +1,26 @@
-# GuardianRoute
+# Escort
 
-**From passive tracking to proactive protection.**
+**Maps get you home. Escort makes sure you get home safely.**
 
-Parents today can see where their teen is, but they usually find out after something is wrong. GuardianRoute proactively chooses safer routes, monitors the trip, checks in with the teen when risk changes, and alerts the parent only when needed.
+Parents today can see where their teen is, but they usually find out after something is wrong. Escort proactively chooses safer routes, monitors the trip, checks in with the teen when risk changes, and alerts the parent only when needed.
 
-This is a mobile web app (React + Vite + Leaflet/OpenStreetMap) built for a hackathon MVP. It is **not** a crime prediction system — it is a route planner that uses recent incident zones and traffic collision zones to recommend safer paths and trigger parent check-ins.
+This is a web app (Next.js + React + Leaflet/OpenStreetMap) built for a hackathon MVP. It is **not** a crime prediction system — it is a route planner that uses recent incident zones and traffic collision zones to recommend safer paths and trigger parent check-ins.
 
 ## Run it
 
+Dependencies are already vendored in `node_modules`, so no install step is needed.
+Invoke the local Next binary directly:
+
 ```
-npm install
-npm run dev
+node_modules/.bin/next dev      # http://localhost:3000
+node_modules/.bin/next build    # production build
 ```
+
+Routing and geocoding fall back to public Valhalla + Nominatim with no API keys,
+which is enough for walking routes. Transit needs an `OTP_URL` pointing at an
+OpenTripPlanner instance with local GTFS data; without one the planner shows a
+clear "no transit itinerary" message. Copy `.env.example` to `.env` to configure
+providers.
 
 Open the printed URL on a phone or in a narrow browser window. Use the Teen / Parent toggle in the header. Opening the app in two tabs keeps both views in sync (BroadcastChannel), so one screen can be the teen and the other the parent.
 

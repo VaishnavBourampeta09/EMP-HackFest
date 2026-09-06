@@ -195,7 +195,7 @@
     "radiusMeters": 220,
     "severity": 2,
     "recencyDays": 3,
-    "source": "GuardianRoute users (demo)"
+    "source": "Escort users (demo)"
   },
   {
     "id": "zone_019",
@@ -217,7 +217,7 @@
     "radiusMeters": 260,
     "severity": 2,
     "recencyDays": 16,
-    "source": "GuardianRoute users (demo)"
+    "source": "Escort users (demo)"
   },
   {
     "id": "zone_021",

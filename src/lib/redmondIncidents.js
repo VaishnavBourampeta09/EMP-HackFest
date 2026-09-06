@@ -280,7 +280,7 @@ export function normalizeIncidentFeature(feature, options = {}) {
       lng: longitude,
       radiusMeters: 250,
       source: options.isFallback
-        ? "GuardianRoute synthetic incident fallback"
+        ? "Escort synthetic incident fallback"
         : "City of Redmond Police open data",
       isFallback: Boolean(options.isFallback),
     },
@@ -464,7 +464,7 @@ export async function getRedmondIncidents(options = {}) {
       type: "FeatureCollection",
       features,
       metadata: {
-        provider: "GuardianRoute",
+        provider: "Escort",
         source: "Deterministic local incident fallback",
         sourceUrl: REDMOND_CRIME_LAYER_URL,
         live: false,
