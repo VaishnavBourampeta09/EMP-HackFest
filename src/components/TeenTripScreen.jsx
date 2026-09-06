@@ -27,6 +27,8 @@ import RouteComparisonInfo from "./RouteComparisonInfo.jsx";
 import LocationPermissionPrompt from "./LocationPermissionPrompt.jsx";
 import SimulationModeBanner from "./SimulationModeBanner.jsx";
 import DangerBox from "./DangerBox.jsx";
+import ReportDangerButton from "./ReportDangerButton.jsx";
+import SimulationControls from "./SimulationControls.jsx";
 import StreetLevelView from "./StreetLevelView.jsx";
 import SosSheet from "./SosSheet.jsx";
 import {
@@ -55,6 +57,7 @@ import demoRoutes from "../data/demo_routes.json";
 import { nearestIndex } from "../logic/geo.js";
 import { routeProgress } from "../logic/routeDeviation.js";
 import { useStore, setState, getState } from "../store.js";
+import { formatMinutes } from "../logic/duration.js";
 
 const MapView = dynamic(() => import("./MapView.jsx"), {
   ssr: false,
@@ -219,7 +222,7 @@ function ActiveTripView({ trip, checkin, locationUpdates, simulation, sos, guard
           return {
             icon: Clock,
             title: `Wait at ${leg.at || "the stop"}`,
-            detail: `${leg.durationMinutes ?? 0} min expected · ${leg.wellLit ? "mapped lighting nearby" : "live arrival monitored"}`,
+            detail: `${formatMinutes(leg.durationMinutes ?? 0)} expected · ${leg.wellLit ? "mapped lighting nearby" : "live arrival monitored"}`,
           };
         }
         if (legType === "transit" || legType === "bus") {
@@ -230,13 +233,13 @@ function ActiveTripView({ trip, checkin, locationUpdates, simulation, sos, guard
           return {
             icon: Bus,
             title: `${leg.routeShortName || "Bus"} toward ${leg.headsign || leg.to}`,
-            detail: `${leg.durationMinutes ?? 0} min${stopDetail}${liveDetail}`,
+            detail: `${formatMinutes(leg.durationMinutes ?? 0)}${stopDetail}${liveDetail}`,
           };
         }
         return {
           icon: Footprints,
           title: `Walk to ${shortPlaceName(leg.to || trip.destination.name)}`,
-          detail: `${leg.durationMinutes ?? 0} min walking`,
+          detail: `${formatMinutes(leg.durationMinutes ?? 0)} walking`,
         };
       })
     : trip.route.instructions?.length
@@ -261,27 +264,40 @@ function ActiveTripView({ trip, checkin, locationUpdates, simulation, sos, guard
         {
           icon: MapPin,
           title: `Arrive at ${shortPlaceName(trip.destination.name)}`,
-          detail: `${trip.etaMinutes} min remaining`,
+          detail: `${formatMinutes(trip.etaMinutes)} remaining`,
         },
       ];
 
   return (
     <div className="map-viewport">
-      {/* Full-screen map base layer */}
-      <div className="map-base">
-        <MapView
-          zones={trip.route.contextFactors || []}
-          places={places}
-          routes={[trip.route]}
-          activeRouteId={trip.route.routeId}
-          teenLocation={trip.location}
-          trail={trail}
-          follow
-          height="100%"
-        />
-        <div className="map-trip-chip">
-          <ShieldCheck size={17} weight="fill" aria-hidden="true" />
-          Planned route visible to your guardian
+      {/* Map on the left, street-level corridor on the right. */}
+      <div className="map-base map-base-split">
+        <div className="map-pane">
+          <MapView
+            zones={trip.route.contextFactors || []}
+            places={places}
+            routes={[trip.route]}
+            activeRouteId={trip.route.routeId}
+            teenLocation={trip.location}
+            trail={trail}
+            follow
+            height="100%"
+          />
+          <div className="map-trip-chip">
+            <ShieldCheck size={17} weight="fill" aria-hidden="true" />
+            Planned route visible to your guardian
+          </div>
+        </div>
+
+        <div className="street-pane">
+          <StreetLevelView
+            points={trip.route.points}
+            position={trip.location}
+            incidents={trip.route.contextFactors || []}
+            title="Around you right now"
+            subtitle="Following your position · past reports flagged"
+            fill
+          />
         </div>
       </div>
 
@@ -299,14 +315,6 @@ function ActiveTripView({ trip, checkin, locationUpdates, simulation, sos, guard
           </div>
           <span>{progress}% complete</span>
         </div>
-
-        <StreetLevelView
-          points={trip.route.points}
-          position={trip.location}
-          title="Around you right now"
-          subtitle="Street-level imagery nearest your current position"
-          height={200}
-        />
 
         <div className="active-destination">
           <span>Heading to</span>
@@ -361,7 +369,7 @@ function ActiveTripView({ trip, checkin, locationUpdates, simulation, sos, guard
         <div className="trip-metrics">
           <div>
             <span>Remaining</span>
-            <strong>{trip.etaMinutes} min</strong>
+            <strong>{formatMinutes(trip.etaMinutes)}</strong>
           </div>
           <div>
             <span>From route</span>
@@ -401,28 +409,6 @@ function ActiveTripView({ trip, checkin, locationUpdates, simulation, sos, guard
             <Check size={20} weight="bold" aria-hidden="true" />
             I arrived safely
           </button>
-          <div className="action-row">
-            <button
-              type="button"
-              className="button button-soft"
-              onClick={() => {
-                const current = getState();
-                setState({
-                  simulation: {
-                    ...current.simulation,
-                    offRoute: false,
-                    stopped: false,
-                    minutesStopped: 0,
-                    index: nearestIndex(current.trip.location, current.trip.route.points),
-                  },
-                });
-              }}
-              title="Return to the planned route"
-            >
-              <Path size={17} weight="bold" aria-hidden="true" />
-              Back on route
-            </button>
-          </div>
           <button
             type="button"
             className="button button-danger button-urgent"
@@ -453,7 +439,7 @@ function ActiveTripView({ trip, checkin, locationUpdates, simulation, sos, guard
 }
 
 export default function TeenTripScreen() {
-  const { trip, checkin, locationUpdates, simulation, users, sos } = useStore();
+  const { trip, checkin, locationUpdates, simulation, users, sos, reports } = useStore();
   const [originName, setOriginName] = useState("Redmond Library, Redmond, WA");
   const [destinationName, setDestinationName] = useState(
     "Downtown Redmond Station, Redmond, WA",
@@ -477,7 +463,10 @@ export default function TeenTripScreen() {
   }, [departureTime]);
 
   const routes = plan?.routes || [];
-  const incidents = plan?.incidents || [];
+  const incidents = useMemo(
+    () => [...(reports || []), ...(plan?.incidents || [])],
+    [reports, plan],
+  );
   const afterDark = isAfterDark(currentTime);
 
   // Real street lamp positions for the selected route's bounding box.
@@ -670,8 +659,9 @@ export default function TeenTripScreen() {
 
   return (
     <div className="map-viewport">
-      {/* Full-screen map base layer */}
-      <div className="map-base">
+      {/* Map on the left, street-level preview of the selected route right. */}
+      <div className={`map-base${selectedRoute ? " map-base-split" : ""}`}>
+        <div className="map-pane">
         <MapView
           zones={incidents}
           places={places}
@@ -701,13 +691,26 @@ export default function TeenTripScreen() {
             <div>
               <span>{selectedRoute.recommended ? "Recommended" : "Selected route"}</span>
               <strong>
-                {selectedRoute.durationMinutes} min · {selectedRoute.label}
+                {formatMinutes(selectedRoute.durationMinutes)} · {selectedRoute.label}
               </strong>
             </div>
             <div className="map-condition-score">
               <span>Conditions</span>
               <strong>{routeCondition(selectedRoute)}</strong>
             </div>
+          </div>
+        )}
+        </div>
+
+        {selectedRoute && (
+          <div className="street-pane">
+            <StreetLevelView
+              points={selectedRoute.points}
+              incidents={nearbyIncidents}
+              title="Preview the route"
+              subtitle="Street-level imagery · past reports flagged"
+              fill
+            />
           </div>
         )}
       </div>
@@ -895,10 +898,6 @@ export default function TeenTripScreen() {
               />
             )}
 
-            {routes.length > 1 && (
-              <RouteComparisonInfo routes={routes} />
-            )}
-
             <SafetyAlertsPanel
               incidents={nearbyIncidents}
               warnings={warnings}
@@ -907,41 +906,18 @@ export default function TeenTripScreen() {
               summary={incidentSummary}
             />
 
-            {selectedRoute && (
-              <StreetLevelView
-                points={selectedRoute.points}
-                title="Preview the walk"
-                subtitle="Street-level imagery along the route you selected"
-              />
-            )}
+            <ReportDangerButton location={selectedRoute?.points?.[0] ?? null} />
 
-            <div className="score-disclaimer">
-              <Info size={16} weight="fill" aria-hidden="true" />
-              <p>
-                Route conditions are estimates from objective environmental
-                factors, not a guarantee of personal safety.
-              </p>
-            </div>
+            <SimulationControls compact />
 
-            <div className="live-data-status" role="status">
-              <span className={plan.metadata?.incidents?.live ? "live-data-dot is-live" : "live-data-dot"} />
-              <div>
-                <strong>
-                  {plan.metadata?.provider === "opentripplanner"
-                    ? "OpenTripPlanner"
-                    : plan.metadata?.provider === "mapbox"
-                      ? "Mapbox Directions"
-                      : "Valhalla pedestrian routing"}
-                </strong>
-                <span>
-                  {plan.metadata?.incidents?.live
-                    ? `${plan.metadata.incidents.scoredCount ?? incidents.length} live Redmond records scored · ${incidents.length} most relevant shown`
-                    : plan.metadata?.incidents?.fallback
-                      ? "Redmond service unavailable · labeled fallback context shown"
-                      : "No Redmond incident context applies to this route"}
-                </span>
-              </div>
-            </div>
+            <p className="sidebar-note" role="status">
+              <Info size={14} weight="fill" aria-hidden="true" />
+              Conditions are estimates from public data, not a guarantee of
+              safety.{" "}
+              {plan.metadata?.incidents?.live
+                ? `${plan.metadata.incidents.scoredCount ?? incidents.length} live Redmond records scored.`
+                : "Live Redmond feed unavailable."}
+            </p>
 
             <button
               type="button"

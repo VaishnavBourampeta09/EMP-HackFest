@@ -18,6 +18,8 @@ import AlertCard from "./AlertCard.jsx";
 import JourneySummaryCard from "./JourneySummaryCard.jsx";
 import DangerBox from "./DangerBox.jsx";
 import StreetLevelView from "./StreetLevelView.jsx";
+import ReportDangerButton from "./ReportDangerButton.jsx";
+import SimulationControls from "./SimulationControls.jsx";
 import {
   incidentsNearRoute,
   summarizeIncidents,
@@ -26,6 +28,7 @@ import {
 import { acknowledgeAlert, places, endTrip } from "../actions.js";
 import { useStore, setState } from "../store.js";
 import { DEFAULT_SETTINGS } from "../logic/tripMonitoring.js";
+import { formatMinutes } from "../logic/duration.js";
 
 const MapView = dynamic(() => import("./MapView.jsx"), {
   ssr: false,
@@ -61,7 +64,7 @@ function conditionScore(route) {
 }
 
 export default function ParentDashboard() {
-  const { trip, alerts, settings, users, locationUpdates, checkin } = useStore();
+  const { trip, alerts, settings, users, locationUpdates, checkin, reports } = useStore();
   const pending = alerts.filter((alert) => alert.status === "pending");
   const lastUpdate = locationUpdates[0];
   const secondsAgo = lastUpdate
@@ -108,7 +111,11 @@ export default function ParentDashboard() {
     }
   };
 
-  const incidents = trip?.route?.contextFactors ?? [];
+  // Community reports sit alongside the official feed.
+  const incidents = useMemo(
+    () => [...(reports || []), ...(trip?.route?.contextFactors ?? [])],
+    [reports, trip],
+  );
   // Summarise the whole corridor, not the truncated display list.
   const nearbyIncidents = useMemo(
     () =>
@@ -246,30 +253,45 @@ export default function ParentDashboard() {
 
   return (
     <div className="map-viewport">
-      {/* Full-screen map base layer */}
-      <div className="map-base">
-        <MapView
-          zones={trip.route.contextFactors || []}
-          places={places}
-          routes={[trip.route]}
-          activeRouteId={trip.route.routeId}
-          teenLocation={trip.location}
-          trail={locationUpdates
-            .slice()
-            .reverse()
-            .map((update) => [update.lat, update.lng])}
-          height="100%"
-        />
-        <div className="guardian-map-card">
-          <div className="teen-avatar teen-avatar-small">{users.teen.name.charAt(0)}</div>
-          <div>
-            <span>{users.teen.name} is heading to</span>
-            <strong title={trip.destination.name}>{shortPlaceName(trip.destination.name)}</strong>
+      {/* Map on the left, street-level corridor on the right. */}
+      <div className="map-base map-base-split">
+        <div className="map-pane">
+          <MapView
+            zones={incidents}
+            places={places}
+            routes={[trip.route]}
+            activeRouteId={trip.route.routeId}
+            teenLocation={trip.location}
+            trail={locationUpdates
+              .slice()
+              .reverse()
+              .map((update) => [update.lat, update.lng])}
+            height="100%"
+          />
+          <div className="guardian-map-card">
+            <div className="teen-avatar teen-avatar-small">{users.teen.name.charAt(0)}</div>
+            <div>
+              <span>{users.teen.name} is heading to</span>
+              <strong title={trip.destination.name}>
+                {shortPlaceName(trip.destination.name)}
+              </strong>
+            </div>
+            <div className="eta-chip">
+              <Clock size={16} weight="bold" aria-hidden="true" />
+              {formatMinutes(trip.etaMinutes)}
+            </div>
           </div>
-          <div className="eta-chip">
-            <Clock size={16} weight="bold" aria-hidden="true" />
-            {trip.etaMinutes} min
-          </div>
+        </div>
+
+        <div className="street-pane">
+          <StreetLevelView
+            points={trip.route.points}
+            position={trip.location}
+            incidents={incidents}
+            title={`Where ${users.teen.name} is`}
+            subtitle="Following their position · past reports flagged"
+            fill
+          />
         </div>
       </div>
 
@@ -293,21 +315,16 @@ export default function ParentDashboard() {
           </div>
         </div>
 
-        {/* What the street actually looks like where they are right now. */}
-        <StreetLevelView
-          points={trip.route.points}
-          position={trip.location}
-          title={`Where ${users.teen.name} is`}
-          subtitle="Street-level imagery nearest their last known position"
-          height={190}
-        />
-
         <DangerBox
           incident={closestIncident}
           totalNearby={incidentSummary.total}
           seriousNearby={incidentSummary.serious}
           compact
         />
+
+        <ReportDangerButton location={trip.location} compact />
+
+        <SimulationControls compact />
 
         {/* Trip facts strip */}
         <div className="guardian-trip-facts">

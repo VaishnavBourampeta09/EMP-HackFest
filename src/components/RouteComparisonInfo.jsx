@@ -1,6 +1,7 @@
 "use client";
 
 import { Lightbulb } from "@phosphor-icons/react";
+import { formatMinutesDelta } from "../logic/duration.js";
 
 export default function RouteComparisonInfo({ routes = [] }) {
   if (routes.length < 2) {
@@ -43,7 +44,7 @@ export default function RouteComparisonInfo({ routes = [] }) {
               <div className="metric-row">
                 <span className="metric-label">Time tradeoff</span>
                 <span className="metric-value">
-                  +{best.timeDeltaMinutes} min safer choice
+                  {formatMinutesDelta(best.timeDeltaMinutes)} safer choice
                 </span>
               </div>
             )}

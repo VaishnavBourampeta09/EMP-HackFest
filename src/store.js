@@ -15,6 +15,9 @@ const initialState = {
   // A standing help request. Separate from `alerts` so the teen keeps their own
   // visible state even after the guardian acknowledges the alert.
   sos: null,
+  // Hazards reported by people using the app, merged into the map alongside
+  // the official City of Redmond feed.
+  reports: [],
   simulation: {
     running: false,
     index: 0,

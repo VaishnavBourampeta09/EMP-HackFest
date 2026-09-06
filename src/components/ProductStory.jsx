@@ -5,14 +5,12 @@ import { useGSAP } from "@gsap/react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import {
-  ArrowRight,
   BellRinging,
   Bus,
   CheckCircle,
   ClockCountdown,
   Footprints,
   LightbulbFilament,
-  LockKey,
   MapPin,
   NavigationArrow,
   ShieldCheck,
@@ -167,76 +165,35 @@ export default function ProductStory({ onPlanClick, onGuardianClick }) {
             A normal route planner with a better objective.
           </h2>
           <p className="story-chapter-lede">
-            Established directions engines generate the realistic walking and
-            transit options. Sentinel scores those candidates on the conditions
-            along the path, then balances safety against travel time.
+            Established engines generate the realistic walking and transit
+            options. Sentinel scores those candidates on the conditions along the
+            path — never on neighborhood labels — then balances safety against
+            travel time.
           </p>
         </header>
 
-        <div className="story-grid">
-          <article className="story-card story-card-wide">
-            <ShieldCheck aria-hidden="true" size={26} weight="regular" />
-            <h3>Safest reasonable, by design</h3>
-            <p>
-              Sentinel will not send someone on an impractical detour for a
-              marginal gain. The weighting shifts with the time of day, and the
-              tradeoff stays visible on every recommendation.
-            </p>
-
-            <div className="story-weights" role="group" aria-label="Route utility weighting">
-              <div className="story-weight-row">
-                <span>Daytime</span>
-                <div className="story-weight-bar" aria-hidden="true">
-                  <i style={{ width: "70%" }} />
-                </div>
-                <strong>70% safety · 30% time</strong>
-              </div>
-              <div className="story-weight-row">
-                <span>After dark</span>
-                <div className="story-weight-bar" aria-hidden="true">
-                  <i style={{ width: "85%" }} />
-                </div>
-                <strong>85% safety · 15% time</strong>
-              </div>
+        <div className="story-weights" role="group" aria-label="Route utility weighting">
+          <div className="story-weight-row">
+            <span>Daytime</span>
+            <div className="story-weight-bar" aria-hidden="true">
+              <i style={{ width: "70%" }} />
             </div>
-          </article>
-
-          <article className="story-card">
-            <MapPin aria-hidden="true" size={26} weight="regular" />
-            <h3>Block-by-block context</h3>
-            <p>
-              Walking legs become 50–100 meter segments, each scored for recent
-              incidents, lighting gaps, pedestrian isolation, and transit waits.
-            </p>
-          </article>
-
-          <article className="story-card">
-            <LockKey aria-hidden="true" size={26} weight="regular" />
-            <h3>Trip-scoped by default</h3>
-            <p>
-              Monitoring begins with Start Safe Trip, follows the selected
-              journey, and ends with it. Alerts share context only when a
-              sustained pattern needs attention.
-            </p>
-          </article>
+            <strong>70% safety · 30% time</strong>
+          </div>
+          <div className="story-weight-row">
+            <span>After dark</span>
+            <div className="story-weight-bar" aria-hidden="true">
+              <i style={{ width: "85%" }} />
+            </div>
+            <strong>85% safety · 15% time</strong>
+          </div>
         </div>
-      </section>
-
-      <section className="story-chapter story-factors" aria-labelledby="factors-title">
-        <header className="story-chapter-heading">
-          <p className="story-eyebrow">Explainable inputs, never neighborhood labels</p>
-          <h2 id="factors-title">What changes a route score?</h2>
-          <p className="story-chapter-lede">
-            Each signal answers a specific question about the path and the moment
-            of travel.
-          </p>
-        </header>
 
         <div className="story-factor-grid">
           {routeFactors.map(({ id, title, detail, signal, Icon }) => (
             <article className="story-factor" key={id}>
               <div className="story-factor-head">
-                <Icon aria-hidden="true" size={22} weight="regular" />
+                <Icon aria-hidden="true" size={20} weight="regular" />
                 <h3>{title}</h3>
               </div>
               <p>{detail}</p>
@@ -246,13 +203,8 @@ export default function ProductStory({ onPlanClick, onGuardianClick }) {
         </div>
       </section>
 
-      <LiveCrimeSection onPlanClick={onPlanClick} />
-
-      <section
-        id="guardian-story"
-        className="story-chapter story-guardian"
-        aria-labelledby="guardian-title"
-      >
+      <LiveCrimeSection onPlanClick={onPlanClick}>
+        <div id="guardian-story" className="story-guardian-inline">
         <div className="ladder-layout">
           <header className="ladder-intro">
             <p className="story-eyebrow">Escalation, not surveillance</p>
@@ -316,34 +268,9 @@ export default function ProductStory({ onPlanClick, onGuardianClick }) {
             </li>
           </ol>
         </div>
-      </section>
+      </div>
 
-      <section className="story-closing" aria-labelledby="story-closing-title">
-        <div className="story-closing-copy">
-          <h2 id="story-closing-title">Choose the route. Keep the context.</h2>
-          <p>
-            Plan with familiar map controls, then let Sentinel quietly watch
-            whether the trip continues as expected.
-          </p>
-        </div>
-        <div className="story-closing-actions">
-          <button
-            className="button button-primary button-large"
-            type="button"
-            onClick={onPlanClick}
-          >
-            Plan a route
-            <ArrowRight aria-hidden="true" size={18} weight="bold" />
-          </button>
-          <button
-            className="button button-outline button-large"
-            type="button"
-            onClick={onGuardianClick}
-          >
-            See the guardian view
-          </button>
-        </div>
-      </section>
+      </LiveCrimeSection>
 
       <footer className="story-footer">
         <div className="story-footer-inner">

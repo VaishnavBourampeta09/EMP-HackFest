@@ -7,6 +7,7 @@ import {
   LightbulbFilament,
   ShieldCheck,
 } from "@phosphor-icons/react";
+import { formatMinutes, formatMinutesDelta } from "../logic/duration.js";
 
 function routeCondition(route) {
   return route.conditionScore ?? Math.max(0, 100 - route.riskScore);
@@ -16,15 +17,15 @@ export default function RouteCard({ route, selected, onSelect }) {
   const condition = routeCondition(route);
   const transitSummary = route.mode === "transit"
     ? [
-        route.waitMinutes > 0 ? `${route.waitMinutes} min wait` : null,
+        route.waitMinutes > 0 ? `${formatMinutes(route.waitMinutes)} wait` : null,
         ...(route.legs
         ?.map((leg) => {
           const type = String(leg.type || leg.mode).toLowerCase();
           if (type === "transit" || type === "bus") {
             return leg.routeShortName || "Bus";
           }
-          if (type === "wait") return `${leg.durationMinutes} min wait`;
-          return `${leg.durationMinutes} min walk`;
+          if (type === "wait") return `${formatMinutes(leg.durationMinutes)} wait`;
+          return `${formatMinutes(leg.durationMinutes)} walk`;
         })
         .filter(Boolean) || []),
       ].filter(Boolean).join(" · ")
@@ -36,7 +37,7 @@ export default function RouteCard({ route, selected, onSelect }) {
       role="listitem"
       className={`route-card${selected ? " selected" : ""}`}
       aria-pressed={selected}
-      aria-label={`${route.recommended ? "Recommended route, " : ""}${route.label}, ${route.durationMinutes} minutes, route conditions ${condition} out of 100`}
+      aria-label={`${route.recommended ? "Recommended route, " : ""}${route.label}, ${formatMinutes(route.durationMinutes, { long: true })}, route conditions ${condition} out of 100`}
       onClick={() => onSelect(route)}
     >
       <span className="route-card-accent" aria-hidden="true" />
@@ -65,8 +66,10 @@ export default function RouteCard({ route, selected, onSelect }) {
       <span className="route-card-metrics">
         <span>
           <Clock size={15} weight="bold" aria-hidden="true" />
-          <strong>{route.durationMinutes} min</strong>
-          {route.timeDeltaMinutes > 0 && <small>+{route.timeDeltaMinutes}</small>}
+          <strong>{formatMinutes(route.durationMinutes)}</strong>
+          {route.timeDeltaMinutes > 0 && (
+            <small>{formatMinutesDelta(route.timeDeltaMinutes)}</small>
+          )}
         </span>
         <span>
           <ShieldCheck size={15} weight="fill" aria-hidden="true" />
