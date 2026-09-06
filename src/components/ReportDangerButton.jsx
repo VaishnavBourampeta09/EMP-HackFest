@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { CheckCircle, WarningOctagon, X } from "@phosphor-icons/react";
-import { HAZARD_LABELS, reportHazard } from "../actions.js";
+import { HAZARD_LABELS, reportHazard } from '../ACTIONS.JS';
 
 const CATEGORIES = [
   "user_reported",

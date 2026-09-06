@@ -6,7 +6,7 @@ import {
   ShieldCheck,
   WarningOctagon,
 } from "@phosphor-icons/react";
-import { formatMinutes } from "../logic/duration.js";
+import { formatMinutes } from '../logic/DURATION.JS';
 
 function routeCondition(route) {
   return route.safetyScore?.toFixed(1) ?? "—";

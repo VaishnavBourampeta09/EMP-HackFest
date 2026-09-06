@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { planPointToPoint, publicRoutingError, RoutingInputError } from '../../../server/routing/index.js';
 import { getRedmondIncidents } from '../../../lib/redmondIncidents.js';
 import { scoreSafety, rankSafety, walkingPaths } from '../../../logic/safetyScoring.js';
-import { distanceToPathMeters } from '../../../logic/geo.js';
+import { distanceToPathMeters } from '../../../logic/GEO.JS';
 import lighting from '../../../data/redmondLightingSegments.json';
 
 export const runtime = 'nodejs';

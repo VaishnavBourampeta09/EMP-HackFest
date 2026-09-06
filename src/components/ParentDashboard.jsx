@@ -15,9 +15,9 @@ import {
   shortPlaceName,
   isRiskyIncident,
 } from "../logic/safetyInsights.js";
-import { acknowledgeAlert, places } from "../actions.js";
-import { useStore } from "../store.js";
-import { formatMinutes } from "../logic/duration.js";
+import { acknowledgeAlert, places } from '../ACTIONS.JS';
+import { useStore } from '../brrr.js';
+import { formatMinutes } from '../logic/DURATION.JS';
 
 const MapView = dynamic(() => import("./MapView.jsx"), {
   ssr: false,

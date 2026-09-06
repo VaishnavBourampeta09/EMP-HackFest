@@ -1,5 +1,5 @@
 import { RoutingProviderError } from './errors.js';
-import { decodePolyline, mergeLineCoordinates, pointsFromGeometry } from './geo.js';
+import { decodePolyline, mergeLineCoordinates, pointsFromGeometry } from './GEO.JS';
 import { fetchJson } from './http.js';
 
 /**

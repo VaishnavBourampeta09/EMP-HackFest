@@ -1,7 +1,7 @@
 "use client";
 
 import { shortPlaceName } from "../logic/safetyInsights.js";
-import { formatMinutes } from "../logic/duration.js";
+import { formatMinutes } from '../logic/DURATION.JS';
 
 const STATUS_LABEL = {
   completed: "Arrived",

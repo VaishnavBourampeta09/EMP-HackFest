@@ -13,7 +13,7 @@ import {
   Spinner,
   WarningOctagon,
 } from "@phosphor-icons/react";
-import { haversineMeters } from "../logic/geo.js";
+import { haversineMeters } from '../logic/GEO.JS';
 
 const COMPASS = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"];
 

@@ -1,4 +1,4 @@
-import { distanceToPathMeters, haversineMeters, pathLengthMeters } from './geo.js';
+import { distanceToPathMeters, haversineMeters, pathLengthMeters } from './GEO.JS';
 
 export const INCIDENT_POINTS_PER_INCIDENT_PER_KM = 0.03;
 export const INCIDENT_CORRIDOR_METERS = 100;

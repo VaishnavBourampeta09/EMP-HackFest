@@ -6,9 +6,9 @@ import { ArrowLeft, MapTrifold, UsersThree } from "@phosphor-icons/react";
 import BrandMark from "./BrandMark.jsx";
 import TeenTripScreen from "./TeenTripScreen.jsx";
 import ParentDashboard from "./ParentDashboard.jsx";
-import { useStore, setState, getState } from "../store.js";
-import { pushLocation, expireCheckin, endTrip } from "../actions.js";
-import { buildDeviationPath } from "../logic/simulation.js";
+import { useStore, setState, getState } from '../brrr.js';
+import { pushLocation, expireCheckin, endTrip } from '../ACTIONS.JS';
+import { buildDeviationPath } from '../logic/SIMULATION.JS';
 
 /**
  * Trip playback pace. One route point every 3s of wall time, each counted as

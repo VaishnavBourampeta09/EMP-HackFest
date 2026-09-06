@@ -9,7 +9,7 @@ import {
   useMap,
 } from "react-leaflet";
 import L from "leaflet";
-import { formatMinutes } from "../logic/duration.js";
+import { formatMinutes } from '../logic/DURATION.JS';
 import { isRiskyIncident } from "../logic/safetyInsights.js";
 
 const DEFAULT_CENTER = [47.6815, -122.128];

@@ -40,12 +40,12 @@ import {
   sendSos,
   clearSos,
   places,
-} from "../actions.js";
+} from '../ACTIONS.JS';
 import demoRoutes from "../data/demo_routes.json";
-import { nearestIndex } from "../logic/geo.js";
+import { nearestIndex } from '../logic/GEO.JS';
 import { routeProgress } from "../logic/routeDeviation.js";
-import { useStore, setState, getState } from "../store.js";
-import { formatMinutes } from "../logic/duration.js";
+import { useStore, setState, getState } from '../brrr.js';
+import { formatMinutes } from '../logic/DURATION.JS';
 
 const MapView = dynamic(() => import("./MapView.jsx"), {
   ssr: false,

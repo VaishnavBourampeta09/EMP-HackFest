@@ -1,5 +1,5 @@
 import { RoutingInputError, RoutingProviderError } from './errors.js';
-import { coordinateFromInput, placeFromCoordinate } from './geo.js';
+import { coordinateFromInput, placeFromCoordinate } from './GEO.JS';
 import { fetchJson } from './http.js';
 
 const PUBLIC_NOMINATIM_MIN_INTERVAL_MS = 1_050;

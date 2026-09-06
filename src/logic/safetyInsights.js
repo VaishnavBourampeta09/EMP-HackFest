@@ -1,4 +1,4 @@
-import { distanceToPathMeters, haversineMeters } from "./geo.js";
+import { distanceToPathMeters, haversineMeters } from './GEO.JS';
 
 /**
  * Turns a planned route plus the live Redmond incident feed into the three

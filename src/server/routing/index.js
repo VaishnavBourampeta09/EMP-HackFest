@@ -1,5 +1,5 @@
 import { RoutingInputError, RoutingProviderError } from './errors.js';
-import { clampCandidateCount } from './geo.js';
+import { clampCandidateCount } from './GEO.JS';
 import { resolvePlace } from './geocode.js';
 import { getOtpTransitRoutes } from './otp.js';
 import { getTransitousRoutes } from './transitous.js';

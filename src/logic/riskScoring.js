@@ -1,4 +1,4 @@
-import { haversineMeters } from './geo.js';
+import { haversineMeters } from './GEO.JS';
 
 export const ZONE_LABELS = {
   property_crime: 'property-incident',

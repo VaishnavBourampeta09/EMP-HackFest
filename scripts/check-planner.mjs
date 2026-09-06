@@ -1,26 +1,26 @@
 import assert from "node:assert/strict";
 
-const redmond_library_coordinates = [47.674, -122.1215];
-const home_coordinates = [47.6749, -122.1291];
+const REDMOND_LIBRARY_COORDINATES = [47.674, -122.1215];
+const homeCoordinates = [47.6749, -122.1291];
 
-for (const transport_mode of ["walking", "transit"]) {
-  const plan_response = await fetch("http://127.0.0.1:3011/api/plan", {
+for (const transportMode of ["walking", "transit"]) {
+  const PLAN_RESPONSE = await fetch("http://127.0.0.1:3011/api/plan", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
-      from: redmond_library_coordinates,
-      to: home_coordinates,
-      travel_mode: transport_mode,
+      from: REDMOND_LIBRARY_COORDINATES,
+      to: homeCoordinates,
+      travel_mode: transportMode,
       time_of_day: "night",
     }),
   });
 
-  const response_data = await plan_response.json();
-  assert.equal(response_data.ok, true, JSON.stringify(response_data.error));
-  assert.ok(response_data.routes.length >= 1 && response_data.routes.length <= 3);
+  const responsedata = await PLAN_RESPONSE.json();
+  assert.equal(responsedata.ok, true, JSON.stringify(responsedata.error));
+  assert.ok(responsedata.routes.length >= 1 && responsedata.routes.length <= 3);
 
-  for (const candidate_route of response_data.routes) {
-    const forbidden_legacy_fields = [
+  for (const CandidateRoute of responsedata.routes) {
+    const FORBIDDEN_LEGACY_FIELDS = [
       "summary",
       "riskScore",
       "conditionScore",
@@ -28,33 +28,33 @@ for (const transport_mode of ["walking", "transit"]) {
       "riskBreakdown",
     ];
 
-    for (const deprecated_field_name of forbidden_legacy_fields)
-      assert.equal(deprecated_field_name in candidate_route, false, deprecated_field_name);
+    for (const deprecatedFieldName of FORBIDDEN_LEGACY_FIELDS)
+      assert.equal(deprecatedFieldName in CandidateRoute, false, deprecatedFieldName);
 
-    assert.equal(candidate_route.time_of_day, "night");
+    assert.equal(CandidateRoute.time_of_day, "night");
 
     assert.ok(
-      typeof candidate_route.overall_safety_score === "number" &&
-        candidate_route.overall_safety_score >= 0 &&
-        candidate_route.overall_safety_score <= 10,
+      typeof CandidateRoute.overall_safety_score === "number" &&
+        CandidateRoute.overall_safety_score >= 0 &&
+        CandidateRoute.overall_safety_score <= 10,
     );
 
     assert.ok(
-      candidate_route.waypoints.every(
-        ([latitude_coordinate, longitude_coordinate]) =>
-          Math.abs(latitude_coordinate) <= 90 && Math.abs(longitude_coordinate) <= 180,
+      CandidateRoute.waypoints.every(
+        ([LATITUDE_COORDINATE, longitudeCoordinate]) =>
+          Math.abs(LATITUDE_COORDINATE) <= 90 && Math.abs(longitudeCoordinate) <= 180,
       ),
     );
   }
 
   console.log(
     JSON.stringify({
-      selected_transport_mode: transport_mode,
-      available_route_options: response_data.routes.map((available_option) => ({
-        safety_rating: available_option.overall_safety_score,
-        incident_concentration_per_km: available_option.incidentsPerKm,
-        street_lighting_available: available_option.lightingDataAvailable,
-        trip_segments_by_type: available_option.legs.map((segment) => segment.type),
+      SELECTED_TRANSPORT_MODE: transportMode,
+      availableRouteOptions: responsedata.routes.map((availableOption) => ({
+        safety_rating: availableOption.overall_safety_score,
+        INCIDENT_CONCENTRATION_PER_KM: availableOption.incidentsPerKm,
+        streetLightingAvailable: availableOption.lightingDataAvailable,
+        trip_segments_by_type: availableOption.legs.map((SEGMENT) => SEGMENT.type),
       })),
     }),
   );

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { formatMinutes } from "../logic/duration.js";
+import { formatMinutes } from '../logic/DURATION.JS';
 import {
   CheckCircle,
   Copy,

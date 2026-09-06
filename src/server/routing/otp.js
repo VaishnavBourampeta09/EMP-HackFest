@@ -1,5 +1,5 @@
 import { RoutingProviderError } from './errors.js';
-import { decodePolyline, mergeLineCoordinates, normalizeIsoDate } from './geo.js';
+import { decodePolyline, mergeLineCoordinates, normalizeIsoDate } from './GEO.JS';
 import { fetchJson } from './http.js';
 
 const ITINERARY_FIELDS = `

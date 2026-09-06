@@ -1,4 +1,4 @@
-import { distanceToPathMeters, nearestIndex, pathLengthMeters } from './geo.js';
+import { distanceToPathMeters, nearestIndex, pathLengthMeters } from './GEO.JS';
 
 export function distanceFromRoute(location, routePoints) {
   return distanceToPathMeters(location, routePoints);

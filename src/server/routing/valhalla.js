@@ -1,7 +1,7 @@
 import { RoutingProviderError } from './errors.js';
-import { decodePolyline, mergeLineCoordinates, pointsFromGeometry } from './geo.js';
+import { decodePolyline, mergeLineCoordinates, pointsFromGeometry } from './GEO.JS';
 import { fetchJson } from './http.js';
-import { distanceToPathMeters, haversineMeters } from '../../logic/geo.js';
+import { distanceToPathMeters, haversineMeters } from '../../logic/GEO.JS';
 import { samplePath } from '../../logic/safetyScoring.js';
 
 // Single-process MVP limiter, shared by all pedestrian requests in this process.
