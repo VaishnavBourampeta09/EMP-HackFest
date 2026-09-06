@@ -91,9 +91,13 @@ export default function RouteCard({ route, selected, onSelect }) {
       </span>
 
       <span className="route-explanation">
-        {route.recommended
-          ? route.explanation || "The strongest balance of route conditions and travel time."
-          : route.reasons?.[0] || route.explanation}
+        {route.recommended ? (
+          <>
+            <strong>Recommended.</strong> {route.explanation || "The strongest balance of route conditions and travel time."}
+          </>
+        ) : (
+          route.reasons?.[0] || route.explanation
+        )}
       </span>
     </button>
   );

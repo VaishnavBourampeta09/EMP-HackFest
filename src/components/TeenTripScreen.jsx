@@ -23,6 +23,7 @@ import {
 import RouteCard from "./RouteCard.jsx";
 import CheckinSheet from "./CheckinSheet.jsx";
 import SafetyAlertsPanel from "./SafetyAlertsPanel.jsx";
+import RouteComparisonInfo from "./RouteComparisonInfo.jsx";
 import {
   startTrip,
   endTrip,
@@ -767,6 +768,10 @@ export default function TeenTripScreen() {
                 />
               ))}
             </div>
+
+            {routes.length > 1 && (
+              <RouteComparisonInfo routes={routes} />
+            )}
 
             {incidents.length > 0 && (
               <SafetyAlertsPanel

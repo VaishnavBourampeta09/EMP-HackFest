@@ -14,6 +14,7 @@ import {
   Warning,
 } from "@phosphor-icons/react";
 import AlertCard from "./AlertCard.jsx";
+import JourneySummaryCard from "./JourneySummaryCard.jsx";
 import { acknowledgeAlert, places, endTrip } from "../actions.js";
 import { useStore, setState } from "../store.js";
 import { DEFAULT_SETTINGS } from "../logic/tripMonitoring.js";
@@ -209,6 +210,9 @@ export default function ParentDashboard() {
       </div>
 
       <aside className="sidebar-float guardian-float" aria-labelledby="guardian-trip-title">
+        {/* Journey summary card - provides immediate context */}
+        <JourneySummaryCard trip={trip} users={users} />
+
         {/* Status banner inside sidebar */}
         <div className={`guardian-status-banner guardian-status-${status}`}>
           <div className="guardian-status-icon">
