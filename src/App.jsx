@@ -71,7 +71,10 @@ export default function App() {
           </Link>
 
           <div className="nav-links" aria-label="Page sections">
-            <button type="button" onClick={() => scrollToId("route-intelligence")}>
+            <button
+              type="button"
+              onClick={() => scrollToId("route-intelligence")}
+            >
               How it works
             </button>
             <button type="button" onClick={() => scrollToId("guardian-story")}>
@@ -90,40 +93,21 @@ export default function App() {
         <section className="hero" aria-labelledby="hero-title">
           <div className="hero-grid">
             <div className="hero-copy">
-              <p className="hero-overline hero-reveal">
-                Safety-aware routing for Redmond
-              </p>
-              <h1 id="hero-title" className="hero-title hero-reveal">
-                Maps get you home.
-                <span>Escort makes sure you get home safely.</span>
+              <h1 id="hero-title" className="hero-title">
+                Maps get you home. Escort makes sure you get home safely.
               </h1>
-              <p className="hero-description hero-reveal">
-                Escort compares the walking and transit routes you would
-                actually take, explains the conditions behind its
-                recommendation, and notices when a trip in progress stops going
-                as planned.
-              </p>
               <div className="hero-actions hero-reveal">
-                <Link className="button button-primary button-large" href="/planner">
+                <Link
+                  className="button button-primary button-large"
+                  href="/planner"
+                >
                   Plan a route
                   <Path size={18} weight="bold" aria-hidden="true" />
                 </Link>
-                <button
-                  type="button"
-                  className="button button-outline button-large"
-                  onClick={() => scrollToId("guardian-story")}
-                >
-                  See how Guardian responds
-                </button>
               </div>
             </div>
 
             <div className="hero-panel">
-              <div className="hero-panel-head">
-                <span className="hero-panel-eyebrow">Tonight · 9:42 PM</span>
-                <span className="hero-panel-chip">Recommended</span>
-              </div>
-
               <div className="hero-route">
                 <div className="hero-route-point">
                   <span className="hero-route-dot" aria-hidden="true" />
@@ -134,7 +118,10 @@ export default function App() {
                 </div>
                 <div className="hero-route-connector" aria-hidden="true" />
                 <div className="hero-route-point">
-                  <span className="hero-route-dot hero-route-dot-end" aria-hidden="true" />
+                  <span
+                    className="hero-route-dot hero-route-dot-end"
+                    aria-hidden="true"
+                  />
                   <div>
                     <span>To</span>
                     <strong>Home · 148th Ave NE</strong>
@@ -160,11 +147,6 @@ export default function App() {
               <p className="hero-panel-reason">
                 Chosen over a 17-minute route with two unlit blocks and a recent
                 late-night incident report.
-              </p>
-
-              <p className="hero-panel-privacy">
-                <ShieldCheck size={17} weight="fill" aria-hidden="true" />
-                Location is shared only while the trip is active.
               </p>
             </div>
           </div>

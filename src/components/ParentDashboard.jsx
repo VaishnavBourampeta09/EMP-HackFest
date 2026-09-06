@@ -14,7 +14,7 @@ import {
   Warning,
 } from "@phosphor-icons/react";
 import AlertCard from "./AlertCard.jsx";
-import { acknowledgeAlert, places } from "../actions.js";
+import { acknowledgeAlert, places, endTrip } from "../actions.js";
 import { useStore, setState } from "../store.js";
 import { DEFAULT_SETTINGS } from "../logic/tripMonitoring.js";
 
@@ -77,9 +77,9 @@ export default function ParentDashboard() {
 
   if (!trip) {
     return (
-      <div className="guardian-empty-layout">
-        <div className="guardian-empty-map">
-          <MapView places={places} height={620} />
+      <div className="map-viewport">
+        <div className="map-base">
+          <MapView places={places} height="100%" />
           <div className="map-resting-message">
             <ShieldCheck size={24} weight="fill" aria-hidden="true" />
             <div>
@@ -89,7 +89,7 @@ export default function ParentDashboard() {
           </div>
         </div>
 
-        <aside className="guardian-sidebar guardian-empty-sidebar">
+        <aside className="sidebar-float guardian-float">
           <div className="teen-profile">
             <span className="teen-avatar">{users.teen.name.charAt(0)}</span>
             <div>
@@ -180,8 +180,36 @@ export default function ParentDashboard() {
   const StatusIcon = statusCopy.icon;
 
   return (
-    <div className="guardian-dashboard-layout">
-      <section className="guardian-map-column" aria-labelledby="guardian-trip-title">
+    <div className="map-viewport">
+      {/* Full-screen map base layer */}
+      <div className="map-base">
+        <MapView
+          zones={trip.route.contextFactors || []}
+          places={places}
+          routes={[trip.route]}
+          activeRouteId={trip.route.routeId}
+          teenLocation={trip.location}
+          trail={locationUpdates
+            .slice()
+            .reverse()
+            .map((update) => [update.lat, update.lng])}
+          height="100%"
+        />
+        <div className="guardian-map-card">
+          <div className="teen-avatar teen-avatar-small">{users.teen.name.charAt(0)}</div>
+          <div>
+            <span>{users.teen.name} is heading to</span>
+            <strong>{trip.destination.name}</strong>
+          </div>
+          <div className="eta-chip">
+            <Clock size={16} weight="bold" aria-hidden="true" />
+            {trip.etaMinutes} min
+          </div>
+        </div>
+      </div>
+
+      <aside className="sidebar-float guardian-float" aria-labelledby="guardian-trip-title">
+        {/* Status banner inside sidebar */}
         <div className={`guardian-status-banner guardian-status-${status}`}>
           <div className="guardian-status-icon">
             <StatusIcon size={23} weight="fill" aria-hidden="true" />
@@ -197,58 +225,29 @@ export default function ParentDashboard() {
           </div>
         </div>
 
-        <div className="guardian-live-map">
-          <MapView
-            zones={trip.route.contextFactors || []}
-            places={places}
-            routes={[trip.route]}
-            activeRouteId={trip.route.routeId}
-            teenLocation={trip.location}
-            trail={locationUpdates
-              .slice()
-              .reverse()
-              .map((update) => [update.lat, update.lng])}
-            height={650}
-          />
-
-          <div className="guardian-map-card">
-            <div className="teen-avatar teen-avatar-small">{users.teen.name.charAt(0)}</div>
-            <div>
-              <span>{users.teen.name} is heading to</span>
-              <strong>{trip.destination.name}</strong>
-            </div>
-            <div className="eta-chip">
-              <Clock size={16} weight="bold" aria-hidden="true" />
-              {trip.etaMinutes} min
-            </div>
-          </div>
-        </div>
-
+        {/* Trip facts strip */}
         <div className="guardian-trip-facts">
           <div>
             <Footprints size={20} weight="bold" aria-hidden="true" />
-            <span>Selected route</span>
+            <span>Route</span>
             <strong>{trip.route.label}</strong>
           </div>
           <div>
             <ShieldCheck size={20} weight="fill" aria-hidden="true" />
-            <span>Route conditions</span>
+            <span>Conditions</span>
             <strong>{conditionScore(trip.route)}/100</strong>
           </div>
           <div>
             <MapPin size={20} weight="fill" aria-hidden="true" />
-            <span>Distance from route</span>
+            <span>Off route</span>
             <strong>{trip.offRouteMeters ?? 0} m</strong>
           </div>
           <div>
             <Eye size={20} weight="bold" aria-hidden="true" />
-            <span>Sharing scope</span>
+            <span>Sharing</span>
             <strong>Trip only</strong>
           </div>
         </div>
-      </section>
-
-      <aside className="guardian-sidebar">
         <div className="teen-profile">
           <span className="teen-avatar">{users.teen.name.charAt(0)}</span>
           <div>
@@ -319,6 +318,23 @@ export default function ParentDashboard() {
               </div>
             );
           })}
+        </section>
+
+        <section className="guardian-emergency-controls" aria-labelledby="emergency-heading">
+          <div className="sidebar-section-heading">
+            <Warning size={19} weight="fill" aria-hidden="true" />
+            <h3 id="emergency-heading">Guardian controls</h3>
+          </div>
+          <button
+            type="button"
+            className="button button-danger button-block"
+            onClick={() => endTrip("cancelled")}
+            aria-label="End this trip"
+            title="Stops monitoring and ends the trip"
+          >
+            End trip
+          </button>
+          <p className="control-note">End the trip if you need immediate control or reach the destination.</p>
         </section>
 
         <div className="privacy-note">
