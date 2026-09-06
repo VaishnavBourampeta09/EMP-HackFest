@@ -34,13 +34,12 @@ const WARNING_ICON = {
 /**
  * Route context for the selected route: the reports that are actually near it,
  * the measured lighting along it, and the plain-language warnings derived from
- * both. Every value here comes from the /api/plan and /api/lighting responses.
+ * both. Every value here comes from the /api/plan response.
  */
 export default function SafetyAlertsPanel({
   incidents = [],
   warnings = [],
   lighting = null,
-  lightingVerdict = null,
   summary = null,
 }) {
   // The danger box already carries the single most serious report, so this list
@@ -65,23 +64,22 @@ export default function SafetyAlertsPanel({
       </div>
 
       {lighting?.available && (
-        <div className={`lighting-stat lighting-${lightingVerdict?.level ?? "mixed"}`}>
+        <div className={"lighting-stat lighting-mixed"}>
           <Lightbulb size={16} weight="fill" aria-hidden="true" />
           <div className="lighting-stat-body">
             <div className="lighting-stat-top">
-              <strong>{lightingVerdict?.label ?? "Lighting"}</strong>
-              <span>{lighting.coveragePercent}% lit</span>
+              <strong>Lighting</strong>
+              <span>{lighting.unlitPercent}% unlit (known coverage)</span>
             </div>
             <div
               className="lighting-bar"
               role="img"
-              aria-label={`${lighting.coveragePercent} percent of this route is near a mapped street lamp`}
+              aria-label={`${lighting.unlitPercent} percent of known lighting samples are unlit`}
             >
-              <i style={{ width: `${lighting.coveragePercent}%` }} />
+              <i style={{ width: `${100 - lighting.unlitPercent}%` }} />
             </div>
             <span className="lighting-stat-detail">
-              {lighting.lampsNearby} mapped street lamps ·{" "}
-              {lighting.longestGapMeters} m longest unlit stretch
+              Based on mapped road and path lighting tags
             </span>
           </div>
         </div>

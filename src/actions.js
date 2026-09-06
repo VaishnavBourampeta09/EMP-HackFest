@@ -1,14 +1,6 @@
 import { getState, setState, createId } from './store.js';
 import incidentZones from './data/incident_zones.json';
 import safePlaces from './data/safe_places.json';
-import demoRoutes from './data/demo_routes.json';
-import demoTransitRoutes from './data/demo_transit_routes.json';
-import { interpolatePath } from './logic/geo.js';
-import {
-  scoreRoute,
-  explainScore,
-  rankRoutesByUtility
-} from './logic/riskScoring.js';
 import { evaluateTrip, escalationMessage } from './logic/tripMonitoring.js';
 import { remainingMinutes, distanceFromRoute } from './logic/routeDeviation.js';
 import { nearestIndex } from './logic/geo.js';
@@ -16,121 +8,8 @@ import { nearestIndex } from './logic/geo.js';
 export const zones = incidentZones;
 export const places = safePlaces;
 
-function isPlanOptions(value) {
-  return Boolean(
-    value &&
-    typeof value === 'object' &&
-    !Array.isArray(value) &&
-    ('mode' in value || 'currentTime' in value)
-  );
-}
-
-function normalizePlanArguments(destinationArg, originArg, optionsArg) {
-  let destination = destinationArg;
-  let origin = originArg;
-  let options = optionsArg;
-
-  if (isPlanOptions(destinationArg)) {
-    options = destinationArg;
-    destination = undefined;
-    origin = undefined;
-  } else if (isPlanOptions(originArg)) {
-    options = originArg;
-    origin = undefined;
-  }
-
-  options = options && typeof options === 'object' ? options : {};
-  const requestedMode = String(options.mode ?? 'walking').toLowerCase();
-  const mode = requestedMode === 'transit' ? 'transit' : 'walking';
-  const source = mode === 'transit' ? demoTransitRoutes : demoRoutes;
-
-  return {
-    destination: destination ?? source.destination,
-    origin: origin ?? source.origin,
-    mode,
-    currentTime: options.currentTime ?? new Date(),
-    source
-  };
-}
-
-function routeLegs(route, origin, destination) {
-  const legs = Array.isArray(route.legs) && route.legs.length > 0
-    ? route.legs
-    : [
-        {
-          legId: `${route.routeId}_walking_leg`,
-          type: 'walking',
-          mode: 'WALK',
-          from: origin.name,
-          to: destination.name,
-          durationMinutes: route.durationMinutes,
-          distanceKm: route.distanceKm,
-          waypoints: route.waypoints
-        }
-      ];
-
-  return legs.map((leg) => ({
-    ...leg,
-    points: Array.isArray(leg.waypoints) && leg.waypoints.length > 0
-      ? interpolatePath(leg.waypoints, 50)
-      : []
-  }));
-}
-
-function isWalkingLeg(leg) {
-  const type = String(leg.type ?? leg.mode).toLowerCase();
-  return type === 'walking' || type === 'walk';
-}
-
 function isTransitLeg(leg) {
-  const type = String(leg.type ?? leg.mode).toLowerCase();
-  return type === 'transit' || type === 'bus' || type === 'rail';
-}
-
-export function planRoutes(
-  destination = demoRoutes.destination,
-  origin = demoRoutes.origin,
-  options = {}
-) {
-  const plan = normalizePlanArguments(destination, origin, options);
-  const scoredRoutes = plan.source.routes
-    .map((route) => {
-      const points = interpolatePath(route.waypoints, 50);
-      const legs = routeLegs(route, plan.origin, plan.destination);
-      const walkingLegs = legs.filter(isWalkingLeg);
-      const transitLegs = legs.filter(isTransitLeg);
-      const risk = scoreRoute(points, incidentZones, {
-        currentTime: plan.currentTime,
-        safePlaces,
-        mode: plan.mode,
-        walkingPaths: walkingLegs.map((leg) => leg.points),
-        legs,
-        transitLegs,
-        waitMinutes: route.waitMinutes,
-        transferCount: route.transferCount,
-        serviceDisruption: route.serviceDisruption
-      });
-      return {
-        ...route,
-        mode: plan.mode,
-        origin: plan.origin,
-        destination: plan.destination,
-        points,
-        legs,
-        walkingLegs,
-        transitLegs,
-        riskScore: risk.score,
-        riskLevel: risk.level,
-        reasons: risk.reasons,
-        crossedZones: risk.crossedZones.map((z) => z.id),
-        nearbyZones: risk.nearbyZones.map((z) => z.id),
-        riskBreakdown: risk.breakdown,
-        transitRisk: risk.transitRisk,
-        explanation: explainScore(risk, route.label.toLowerCase())
-      };
-    });
-
-  return rankRoutesByUtility(scoredRoutes, { currentTime: plan.currentTime });
+  return ['transit', 'bus', 'rail'].includes(String(leg.type ?? leg.mode).toLowerCase());
 }
 
 export function startTrip(route) {

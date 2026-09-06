@@ -6,7 +6,9 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "data:refresh-lighting": "node scripts/refresh-lighting.mjs",
+    "test:safety": "node --experimental-default-type=module scripts/test-safety.mjs"
   },
   "dependencies": {
     "@fontsource/outfit": "^5.3.0",

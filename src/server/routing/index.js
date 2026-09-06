@@ -1,7 +1,6 @@
 import { RoutingInputError, RoutingProviderError } from './errors.js';
-import { clampCandidateCount, normalizeIsoDate } from './geo.js';
+import { clampCandidateCount } from './geo.js';
 import { resolvePlace } from './geocode.js';
-import { getMapboxWalkingRoutes } from './mapbox.js';
 import { getOtpTransitRoutes } from './otp.js';
 import { getTransitousRoutes } from './transitous.js';
 import { getValhallaRoutes } from './valhalla.js';
@@ -33,8 +32,8 @@ export function routingCapabilities() {
       publicFallback
     },
     walking: {
-      configured: Boolean(process.env.MAPBOX_ACCESS_TOKEN),
-      preferredProvider: process.env.MAPBOX_ACCESS_TOKEN ? 'mapbox' : 'valhalla',
+      configured: true,
+      preferredProvider: 'valhalla',
       publicFallback
     },
     transit: {
@@ -49,42 +48,7 @@ export function routingCapabilities() {
 }
 
 async function walkingRoutes(origin, destination, options) {
-  const attempts = [];
-  if (process.env.MAPBOX_ACCESS_TOKEN) {
-    try {
-      return {
-        routes: await getMapboxWalkingRoutes(origin, destination, options),
-        attempts,
-        fallbackUsed: false
-      };
-    } catch (error) {
-      attempts.push(providerFailure(error));
-      if (!options.allowPublicFallback) throw error;
-    }
-  }
-
-  if (!options.allowPublicFallback) {
-    throw new RoutingProviderError(
-      'Walking routing',
-      'MAPBOX_ACCESS_TOKEN is required when public routing fallback is disabled.',
-      { details: { attempts } }
-    );
-  }
-
-  try {
-    return {
-      routes: await getValhallaRoutes(origin, destination, options),
-      attempts,
-      fallbackUsed: Boolean(process.env.MAPBOX_ACCESS_TOKEN)
-    };
-  } catch (error) {
-    attempts.push(providerFailure(error));
-    throw new RoutingProviderError(
-      'Walking routing',
-      'No walking provider could plan this trip.',
-      { cause: error, details: { attempts } }
-    );
-  }
+  return { routes: await getValhallaRoutes(origin, destination, { ...options, maxCandidates: 3 }), attempts: [], fallbackUsed: false };
 }
 
 async function transitRoutes(origin, destination, options) {
@@ -122,28 +86,13 @@ async function transitRoutes(origin, destination, options) {
     attempts.push(providerFailure(error));
   }
 
-  // Last resort: Valhalla multimodal, which only sometimes has transit tiles.
-  try {
-    return {
-      routes: await getValhallaRoutes(origin, destination, options),
-      attempts,
-      fallbackUsed: true
-    };
-  } catch (error) {
-    attempts.push(providerFailure(error));
-    throw new RoutingProviderError(
-      'Transit routing',
-      'No scheduled transit itinerary was found for this trip and time. Try a different departure time, or a walking route.',
-      { cause: error, details: { attempts } }
-    );
-  }
+  throw new RoutingProviderError('Transit routing', 'No transit itinerary is available right now.', { details: { attempts } });
 }
 
 export async function planPointToPoint({
   origin: originInput,
   destination: destinationInput,
   mode = 'walking',
-  departureTime = new Date(),
   maxCandidates = 3,
   language = 'en',
   allowPublicFallback: requestedFallback
@@ -163,10 +112,15 @@ export async function planPointToPoint({
     resolvePlace(destinationInput, { language, allowPublicFallback })
   ]);
   assertDistinctPlaces(origin, destination);
+  for (const place of [origin, destination]) {
+    if (place.lat < 47.62 || place.lat > 47.76 || place.lng < -122.24 || place.lng > -122.05) {
+      throw new RoutingInputError('Safety coverage is currently limited to Redmond.');
+    }
+  }
 
   const options = {
     mode: normalizedMode,
-    departureTime: normalizeIsoDate(departureTime),
+    departureTime: new Date().toISOString(),
     maxCandidates: clampCandidateCount(maxCandidates),
     allowPublicFallback
   };

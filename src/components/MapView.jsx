@@ -391,12 +391,6 @@ function RouteLine({ route, positions, state, onRouteSelect }) {
         <Tooltip sticky className="map-route-tooltip">
           <strong>{routeName}</strong>
           {detail && <span className="map-route-tooltip__detail"> · {detail}</span>}
-          {route.summary && (
-            <span className="map-route-tooltip__summary">
-              <br />
-              {route.summary}
-            </span>
-          )}
         </Tooltip>
       </Polyline>
     </>

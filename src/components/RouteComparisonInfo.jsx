@@ -32,11 +32,11 @@ export default function RouteComparisonInfo({ routes = [] }) {
         {others.length > 0 && (
           <>
             <div className="metric-row">
-              <span className="metric-label">Route conditions</span>
+              <span className="metric-label">Safety Score</span>
               <span className="metric-comparison">
-                <span className="better">{best.conditionScore ?? 85}/100</span>
+                <span className="better">{best.safetyScore?.toFixed(1) ?? '—'}/10</span>
                 <span className="vs">vs</span>
-                <span className="worse">{others[0]?.conditionScore ?? 70}/100</span>
+                <span className="worse">{others[0]?.safetyScore?.toFixed(1) ?? '—'}/10</span>
               </span>
             </div>
 
@@ -52,7 +52,7 @@ export default function RouteComparisonInfo({ routes = [] }) {
             <div className="metric-row">
               <span className="metric-label">Key difference</span>
               <span className="metric-explanation">
-                {best.explanation || "Better conditions and lower incident exposure"}
+                {best.incidentsPerKm} incidents/km
               </span>
             </div>
           </>
@@ -60,8 +60,7 @@ export default function RouteComparisonInfo({ routes = [] }) {
       </div>
 
       <p className="comparison-note">
-        Safety scores are based on lighting, recent incidents, and transit reliability. Your awareness
-        and preparation matter most.
+        Scores compare incident exposure and, at night, lighting. Transit scores cover walking portions only.
       </p>
     </div>
   );

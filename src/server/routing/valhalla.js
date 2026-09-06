@@ -1,209 +1,120 @@
 import { RoutingProviderError } from './errors.js';
 import { decodePolyline, mergeLineCoordinates, pointsFromGeometry } from './geo.js';
 import { fetchJson } from './http.js';
+import { distanceToPathMeters, haversineMeters } from '../../logic/geo.js';
+import { samplePath } from '../../logic/safetyScoring.js';
 
-function routeEndpoint() {
-  const base = process.env.VALHALLA_URL || 'https://valhalla1.openstreetmap.de';
-  return new URL('/route', base.endsWith('/') ? base : `${base}/`);
+// Single-process MVP limiter, shared by all pedestrian requests in this process.
+let nextRequestAt = 0;
+async function waitForSlot() {
+  const now = Date.now();
+  const slot = Math.max(now, nextRequestAt);
+  nextRequestAt = slot + 1000;
+  if (slot > now) await new Promise(resolve => setTimeout(resolve, slot - now));
 }
 
-function valhallaMode(maneuver) {
-  const rawMode = String(maneuver?.travel_mode || '').toLowerCase();
-  if (rawMode === 'pedestrian') return 'WALK';
-  if (rawMode === 'bicycle') return 'BICYCLE';
-  if (rawMode === 'transit' || rawMode === 'public_transit') {
-    return String(maneuver?.transit_info?.transit_type || 'TRANSIT').toUpperCase();
-  }
-  return rawMode ? rawMode.toUpperCase() : 'WALK';
-}
-
-function normalizeGeometry(shape) {
-  if (shape?.type === 'LineString' && Array.isArray(shape.coordinates)) return shape;
-  return {
-    type: 'LineString',
-    coordinates: decodePolyline(shape, 6)
-  };
-}
-
-function normalizeStep(maneuver, index) {
-  return {
-    id: `valhalla-step-${index}`,
-    instruction: maneuver.instruction || maneuver.verbal_pre_transition_instruction || 'Continue',
-    distanceMeters: Math.round((maneuver.length || 0) * 1000),
-    durationSeconds: Math.round(maneuver.time || 0),
-    maneuver: maneuver.type,
-    streetName: maneuver.street_names?.[0],
-    beginShapeIndex: maneuver.begin_shape_index,
-    endShapeIndex: maneuver.end_shape_index
-  };
-}
-
-function splitLegByMode(leg, legIndex, routeIndex, fullCoordinates, origin, destination) {
-  const maneuvers = leg.maneuvers || [];
-  if (!maneuvers.length) {
-    return [
-      {
-        legId: `valhalla-${routeIndex}-leg-${legIndex}`,
-        type: 'walking',
-        mode: 'WALK',
-        from: origin.name,
-        to: destination.name,
-        durationSeconds: Math.round(leg.summary?.time || 0),
-        durationMinutes: Math.max(1, Math.round((leg.summary?.time || 0) / 60)),
-        distanceMeters: Math.round((leg.summary?.length || 0) * 1000),
-        distanceKm: Number((leg.summary?.length || 0).toFixed(2)),
-        geometry: { type: 'LineString', coordinates: fullCoordinates },
-        waypoints: fullCoordinates.map(([lng, lat]) => [lat, lng]),
-        steps: []
-      }
-    ];
-  }
-
-  const groups = [];
-  for (const maneuver of maneuvers) {
-    const mode = valhallaMode(maneuver);
-    const previous = groups[groups.length - 1];
-    if (previous?.mode === mode) previous.maneuvers.push(maneuver);
-    else groups.push({ mode, maneuvers: [maneuver] });
-  }
-
-  return groups.map((group, groupIndex) => {
-    const first = group.maneuvers[0];
-    const last = group.maneuvers[group.maneuvers.length - 1];
-    const startIndex = Math.max(0, first.begin_shape_index || 0);
-    const endIndex = Math.max(startIndex + 1, last.end_shape_index || startIndex + 1);
-    const coordinates = fullCoordinates.slice(startIndex, endIndex + 1);
-    const transitInfo = group.maneuvers.find((item) => item.transit_info)?.transit_info;
-    const isWalking = group.mode === 'WALK';
-    const durationSeconds = group.maneuvers.reduce((sum, item) => sum + (item.time || 0), 0);
-    const distanceKm = group.maneuvers.reduce((sum, item) => sum + (item.length || 0), 0);
-    const fromName = transitInfo?.onestop_id || (groupIndex === 0 ? origin.name : 'Transfer point');
-    const toName = groupIndex === groups.length - 1 ? destination.name : 'Transfer point';
-
+function normalizeTrip(trip, index, origin, destination) {
+  const legs = (trip.legs || []).map((leg, legIndex) => {
+    const geometry = leg.shape?.type === 'LineString' ? leg.shape
+      : { type: 'LineString', coordinates: decodePolyline(leg.shape, 6) };
+    const steps = (leg.maneuvers || []).map((step, stepIndex) => ({
+      id: `valhalla-step-${legIndex}-${stepIndex}`,
+      instruction: step.instruction || 'Continue',
+      distanceMeters: Math.round((step.length || 0) * 1000),
+      durationSeconds: Math.round(step.time || 0),
+      maneuver: step.type, streetName: step.street_names?.[0],
+      beginShapeIndex: step.begin_shape_index, endShapeIndex: step.end_shape_index,
+    }));
     return {
-      legId: `valhalla-${routeIndex}-leg-${legIndex}-${groupIndex}`,
-      type: isWalking ? 'walking' : 'transit',
-      mode: group.mode,
-      from: fromName,
-      to: toName,
-      durationSeconds: Math.round(durationSeconds),
-      durationMinutes: Math.max(1, Math.round(durationSeconds / 60)),
-      distanceMeters: Math.round(distanceKm * 1000),
-      distanceKm: Number(distanceKm.toFixed(2)),
-      geometry: { type: 'LineString', coordinates },
-      waypoints: coordinates.map(([lng, lat]) => [lat, lng]),
-      steps: group.maneuvers.map(normalizeStep),
-      routeShortName: transitInfo?.short_name,
-      routeLongName: transitInfo?.long_name,
-      headsign: transitInfo?.headsign,
-      transitInfo
+      legId: `valhalla-${index}-leg-${legIndex}`, type: 'walking', mode: 'WALK',
+      from: origin.name, to: destination.name,
+      durationSeconds: Math.round(leg.summary?.time || 0),
+      durationMinutes: Math.max(1, Math.round((leg.summary?.time || 0) / 60)),
+      distanceMeters: Math.round((leg.summary?.length || 0) * 1000),
+      distanceKm: Number((leg.summary?.length || 0).toFixed(2)),
+      geometry, waypoints: pointsFromGeometry(geometry), steps,
     };
   });
-}
-
-function normalizeTrip(trip, routeIndex, mode, origin, destination) {
-  const sourceLegs = trip.legs || [];
-  const sourceGeometries = sourceLegs.map((leg) => normalizeGeometry(leg.shape));
-  const geometryCoordinates = mergeLineCoordinates(
-    sourceGeometries.map((geometry) => geometry.coordinates)
-  );
-  const legs = sourceLegs.flatMap((leg, legIndex) =>
-    splitLegByMode(
-      leg,
-      legIndex,
-      routeIndex,
-      sourceGeometries[legIndex].coordinates,
-      origin,
-      destination
-    )
-  );
-  const summary = trip.summary || sourceLegs.reduce(
-    (total, leg) => ({
-      time: total.time + (leg.summary?.time || 0),
-      length: total.length + (leg.summary?.length || 0)
-    }),
-    { time: 0, length: 0 }
-  );
-  const transitLegs = legs.filter((leg) => leg.type === 'transit');
-
+  const geometry = { type: 'LineString', coordinates: mergeLineCoordinates(legs.map(leg => leg.geometry.coordinates)) };
+  const points = pointsFromGeometry(geometry);
+  if (points.length < 2) throw new RoutingProviderError('Valhalla', 'No walkable route geometry was returned.');
   return {
-    id: `valhalla-${mode}-${routeIndex + 1}`,
-    routeId: `valhalla-${mode}-${routeIndex + 1}`,
-    label:
-      routeIndex === 0
-        ? mode === 'transit'
-          ? 'Best transit route'
-          : 'Fastest walk'
-        : `${mode === 'transit' ? 'Transit' : 'Walking'} alternative ${routeIndex + 1}`,
-    mode,
-    provider: 'valhalla',
-    origin,
-    destination,
-    durationSeconds: Math.round(summary.time || 0),
-    durationMinutes: Math.max(1, Math.round((summary.time || 0) / 60)),
-    distanceMeters: Math.round((summary.length || 0) * 1000),
-    distanceKm: Number((summary.length || 0).toFixed(2)),
-    geometry: { type: 'LineString', coordinates: geometryCoordinates },
-    points: pointsFromGeometry({ type: 'LineString', coordinates: geometryCoordinates }),
-    waypoints: pointsFromGeometry({ type: 'LineString', coordinates: geometryCoordinates }),
-    legs,
-    transitLegs,
-    instructions: legs.flatMap((leg) => leg.steps),
-    waitMinutes: 0,
-    transferCount: Math.max(0, transitLegs.length - 1),
-    serviceDisruption: false
+    id: `valhalla-walking-${index + 1}`, routeId: `valhalla-walking-${index + 1}`,
+    label: `Route ${String.fromCharCode(65 + index)}`, mode: 'walking', provider: 'valhalla',
+    origin, destination,
+    durationSeconds: Math.round(trip.summary?.time || 0),
+    durationMinutes: Math.max(1, Math.round((trip.summary?.time || 0) / 60)),
+    distanceMeters: Math.round((trip.summary?.length || 0) * 1000),
+    distanceKm: Number((trip.summary?.length || 0).toFixed(2)),
+    geometry, points, waypoints: points, legs, transitLegs: [], instructions: legs.flatMap(leg => leg.steps),
   };
 }
 
-export async function getValhallaRoutes(
-  origin,
-  destination,
-  { mode = 'walking', maxCandidates = 3, departureTime } = {}
-) {
-  const isTransit = mode === 'transit';
-  const request = {
-    locations: [
-      { lat: origin.lat, lon: origin.lng, type: 'break' },
-      { lat: destination.lat, lon: destination.lng, type: 'break' }
-    ],
-    costing: isTransit ? 'multimodal' : 'pedestrian',
-    units: 'kilometers',
-    language: 'en-US',
-    alternates: Math.max(0, maxCandidates - 1),
-    directions_options: { units: 'kilometers', language: 'en-US' }
-  };
-
-  if (isTransit) {
-    request.date_time = {
-      type: 1,
-      value: new Date(departureTime || Date.now()).toISOString().slice(0, 16)
-    };
+async function requestWalkingTrips(origin, destination, waypoint = null) {
+  await waitForSlot();
+  const payload = await fetchJson('Valhalla',
+    new URL('/route', process.env.VALHALLA_URL || 'https://valhalla1.openstreetmap.de'), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Client-Id': process.env.VALHALLA_CLIENT_ID || 'sentinel-hackfest' },
+      body: JSON.stringify({
+        locations: [
+          { lat: origin.lat, lon: origin.lng, type: 'break' },
+          ...(waypoint ? [{ ...waypoint, type: 'through' }] : []),
+          { lat: destination.lat, lon: destination.lng, type: 'break' },
+        ],
+        costing: 'pedestrian', alternates: waypoint ? 0 : 2,
+        directions_options: { units: 'kilometers', language: 'en-US' },
+      }),
+    });
+  if (payload?.trip?.status || (!payload?.trip && !(payload?.alternates || []).length)) {
+    throw new RoutingProviderError('Valhalla', payload?.error || 'No walking route found.');
   }
+  return [payload?.trip, ...(payload?.alternates || []).map(item => item.trip)].filter(Boolean);
+}
 
-  const payload = await fetchJson('Valhalla', routeEndpoint(), {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(request)
-  });
-  const trips = [payload?.trip, ...(payload?.alternates || []).map((item) => item.trip)].filter(Boolean);
+function overlap(a, b) {
+  const samples = samplePath(a.points);
+  const total = samples.reduce((sum, sample) => sum + sample.weight, 0);
+  return total ? samples.reduce((sum, sample) => sum +
+    (distanceToPathMeters(sample.point, b.points) <= 30 ? sample.weight : 0), 0) / total : 1;
+}
 
-  if (!trips.length || payload?.trip?.status) {
-    throw new RoutingProviderError(
-      'Valhalla',
-      payload?.trip?.status_message || payload?.error || 'Valhalla did not find a route.'
-    );
+export async function getValhallaRoutes(origin, destination, { maxCandidates = 3 } = {}) {
+  const limit = Math.max(1, Math.min(3, maxCandidates));
+  const trips = await requestWalkingTrips(origin, destination);
+  const baseline = normalizeTrip(trips[0], 0, origin, destination);
+  const routes = [baseline];
+  function add(trip) {
+    const route = normalizeTrip(trip, routes.length, origin, destination);
+    if (routes.length >= limit || route.durationSeconds > baseline.durationSeconds * 1.8) return;
+    if (routes.some(other => overlap(route, other) >= 0.7 && overlap(other, route) >= 0.7)) return;
+    routes.push(route);
   }
+  trips.slice(1).forEach(add);
 
-  const routes = trips
-    .slice(0, maxCandidates)
-    .map((trip, index) => normalizeTrip(trip, index, mode, origin, destination));
-
-  if (isTransit && !routes.some((route) => route.transitLegs.length)) {
-    throw new RoutingProviderError(
-      'Valhalla',
-      'The public fallback has no transit itinerary for these points. Configure OTP_URL for local transit coverage.'
-    );
+  // Route through opposite sides of the trip corridor. These are shaping
+  // points, not safe-place claims or extra passenger stops.
+  const samples = samplePath(baseline.points);
+  const center = samples[Math.floor(samples.length / 2)]?.point;
+  const latScale = 111320;
+  const lngScale = latScale * Math.cos((origin.lat + destination.lat) / 2 * Math.PI / 180);
+  const dx = (destination.lng - origin.lng) * lngScale;
+  const dy = (destination.lat - origin.lat) * latScale;
+  const length = Math.hypot(dx, dy);
+  const offset = Math.min(350, Math.max(150, length * 0.3));
+  for (const side of [-1, 1]) {
+    if (routes.length >= limit || !center || length < 100) break;
+    const waypoint = { lat: center[0] + side * dx / length * offset / latScale,
+      lon: center[1] - side * dy / length * offset / lngScale };
+    if (waypoint.lat < 47.62 || waypoint.lat > 47.76 || waypoint.lon < -122.24 || waypoint.lon > -122.05) continue;
+    if (haversineMeters([waypoint.lat, waypoint.lon], [origin.lat, origin.lng]) < 100 ||
+      haversineMeters([waypoint.lat, waypoint.lon], [destination.lat, destination.lng]) < 100) continue;
+    try {
+      (await requestWalkingTrips(origin, destination, waypoint)).forEach(add);
+    } catch {
+      // A river, disconnected path, or unavailable provider can prevent a detour.
+      // Keep the successful routes; never fabricate a third option.
+    }
   }
-
   return routes;
 }

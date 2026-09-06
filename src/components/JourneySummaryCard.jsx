@@ -14,7 +14,7 @@ export default function JourneySummaryCard({ trip, users }) {
   if (!trip) return null;
 
   const condition =
-    trip.route?.conditionScore ?? Math.max(0, 100 - (trip.route?.riskScore ?? 0));
+    trip.route?.safetyScore?.toFixed(1) ?? '—';
   const mode = trip.mode === "transit" ? "transit" : "walking";
   const ModeIcon = mode === "transit" ? Bus : Footprints;
 
@@ -60,7 +60,7 @@ export default function JourneySummaryCard({ trip, users }) {
         <div className="metric">
           <ShieldCheck size={16} weight="fill" aria-hidden="true" />
           <dt>Conditions</dt>
-          <dd>{condition}/100</dd>
+          <dd>{condition}/10</dd>
         </div>
       </dl>
     </section>

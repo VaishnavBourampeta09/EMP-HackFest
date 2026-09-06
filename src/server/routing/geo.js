@@ -78,11 +78,12 @@ export function decodePolyline(encoded, precision = 5) {
         }
         byte = encoded.charCodeAt(index) - 63;
         index += 1;
-        result |= (byte & 0x1f) << shift;
+        // Transitous precision-7 longitudes exceed signed 32-bit range.
+        result += (byte & 0x1f) * 2 ** shift;
         shift += 5;
       } while (byte >= 0x20);
 
-      values.push(result & 1 ? ~(result >> 1) : result >> 1);
+      values.push(result % 2 ? -Math.floor(result / 2) - 1 : Math.floor(result / 2));
     }
 
     lat += values[0];

@@ -79,14 +79,14 @@ export function routeWarnings(route, nearbyIncidents = [], options = {}) {
       level: "medium",
       title: "Travelling after dark",
       detail:
-        "Sentinel has shifted the ranking to 85% safety and 15% travel time, and weights lighting gaps more heavily for this trip.",
+        "Night scoring uses incidents and lighting equally. Unknown lighting stays neutral.",
     });
   }
 
   const better = alternatives.find(
     (candidate) =>
       candidate.routeId !== route?.routeId &&
-      (candidate.conditionScore ?? 0) > (route?.conditionScore ?? 0) + 2,
+      (candidate.safetyScore ?? 0) > (route?.safetyScore ?? 0) + 2,
   );
   if (better) {
     const extra = Math.max(
@@ -96,7 +96,7 @@ export function routeWarnings(route, nearbyIncidents = [], options = {}) {
     warnings.push({
       id: "better-option",
       level: "info",
-      title: `"${better.label}" scores ${better.conditionScore} vs ${route?.conditionScore}`,
+      title: `"${better.label}" scores ${better.safetyScore} vs ${route?.safetyScore}`,
       detail:
         extra > 0
           ? `It costs about ${extra} more minute${extra === 1 ? "" : "s"} of walking.`
@@ -110,7 +110,7 @@ export function routeWarnings(route, nearbyIncidents = [], options = {}) {
       level: "clear",
       title: "No standout hazards on this route",
       detail:
-        "No serious recent reports sit close to the path, and lighting coverage along it looks normal for the time of day.",
+        "No standout mapped incident warnings were found. Missing reports or lighting data do not establish safety.",
     });
   }
 
@@ -134,7 +134,7 @@ export function nearestSafePlaces(places = [], location, limit = 3) {
 export function compareRoutes(routes = [], incidents = []) {
   if (routes.length === 0) return [];
   const best = routes.reduce((a, b) =>
-    (a.conditionScore ?? 0) >= (b.conditionScore ?? 0) ? a : b,
+    (a.safetyScore ?? 0) >= (b.safetyScore ?? 0) ? a : b,
   );
   const fastest = routes.reduce((a, b) =>
     (a.durationMinutes ?? Infinity) <= (b.durationMinutes ?? Infinity) ? a : b,
@@ -148,8 +148,7 @@ export function compareRoutes(routes = [], incidents = []) {
     return {
       routeId: route.routeId,
       label: route.label,
-      conditionScore: route.conditionScore ?? 0,
-      riskLevel: route.riskLevel,
+      safetyScore: route.safetyScore ?? 0,
       durationMinutes: route.durationMinutes ?? 0,
       distanceKm: route.distanceKm ?? 0,
       incidentsOnPath: near.length,
@@ -188,10 +187,6 @@ export function summarizeIncidents(incidents = []) {
   };
 }
 
-export function isAfterDark(date = new Date()) {
-  const hour = date.getHours();
-  return hour >= 19 || hour < 6;
-}
 
 /**
  * Geocoders return the full postal chain — "Downtown Redmond, Northeast 76th

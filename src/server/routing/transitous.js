@@ -18,7 +18,7 @@ function planEndpoint() {
   return new URL('/api/v1/plan', base.endsWith('/') ? base : `${base}/`);
 }
 
-const WALK_MODES = new Set(['WALK', 'BIKE', 'CAR', 'ODM']);
+const WALK_MODES = new Set(['WALK']);
 
 function legType(mode) {
   return WALK_MODES.has(String(mode).toUpperCase()) ? 'walking' : 'transit';
@@ -97,6 +97,7 @@ function normalizeLeg(leg, index, routeIndex) {
     steps: [],
     // Transit-only detail the UI can surface.
     routeName: type === 'transit' ? routeName : null,
+    routeShortName: type === 'transit' ? routeName : null,
     routeColor: leg.routeColor ? `#${String(leg.routeColor).replace(/^#/, '')}` : null,
     agency: leg.agencyName ?? null,
     headsign: leg.headsign ?? null,
@@ -164,10 +165,7 @@ function normalizeItinerary(itinerary, routeIndex, origin, destination) {
     serviceDisruption: legs.some((leg) => leg.cancelled),
     departureTime: itinerary.startTime ?? null,
     arrivalTime: itinerary.endTime ?? null,
-    realTime: legs.some((leg) => leg.realTime),
-    summary: headline
-      ? `${headline} · ${transitLegs.length} ride${transitLegs.length === 1 ? '' : 's'}`
-      : 'Walking connection'
+    realTime: legs.some((leg) => leg.realTime)
   };
 }
 
@@ -204,7 +202,7 @@ export async function getTransitousRoutes(
   if (withTransit.length === 0) {
     throw new RoutingProviderError(
       'Transitous',
-      'No scheduled transit itinerary was found for this time. Try a different departure time.'
+      'No scheduled transit itinerary was found right now. Try a walking route or check again later.'
     );
   }
 
